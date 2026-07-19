@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { direction, pct, signedMoney } from "@/lib/format";
+import { useMoney } from "@/components/Currency";
+import { direction, pct } from "@/lib/format";
 
 export function PageHead({
   eyebrow,
@@ -44,12 +47,13 @@ export function PnLPill({
   showPct?: number | null;
   onSlab?: boolean;
 }) {
+  const { fmtSigned } = useMoney();
   const dir = direction(value);
   const cls = dir === "up" ? "pill--up" : dir === "down" ? "pill--down" : "pill--flat";
   return (
     <span className={`pill ${cls}${onSlab ? " pill--on-slab" : ""}`}>
       {dir === "up" ? arrowUp : dir === "down" ? arrowDown : null}
-      {signedMoney(value)}
+      {fmtSigned(value)}
       {showPct !== undefined && showPct !== null ? ` · ${pct(showPct)}` : ""}
     </span>
   );

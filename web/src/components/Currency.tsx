@@ -85,7 +85,10 @@ export function useCurrency(): CurrencyContextValue {
   return context;
 }
 
-export function useMoney(): { fmt: (valueUsd: number | null | undefined) => string } {
+export function useMoney(): {
+  fmt: (valueUsd: number | null | undefined) => string;
+  fmtSigned: (valueUsd: number | null | undefined) => string;
+} {
   const { currency, rate } = useCurrency();
 
   function fmt(valueUsd: number | null | undefined): string {
@@ -98,5 +101,17 @@ export function useMoney(): { fmt: (valueUsd: number | null | undefined) => stri
     return usdFormatter.format(valueUsd);
   }
 
-  return { fmt };
+  function fmtSigned(valueUsd: number | null | undefined): string {
+    if (valueUsd === null || valueUsd === undefined || Number.isNaN(valueUsd)) {
+      return "—";
+    }
+    const sign = valueUsd > 0 ? "+" : valueUsd < 0 ? "−" : "";
+    const absoluteValueUsd = Math.abs(valueUsd);
+    if (currency === "BRL" && rate) {
+      return `${sign}${brlFormatter.format(absoluteValueUsd * rate)}`;
+    }
+    return `${sign}${usdFormatter.format(absoluteValueUsd)}`;
+  }
+
+  return { fmt, fmtSigned };
 }
