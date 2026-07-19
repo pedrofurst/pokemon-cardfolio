@@ -12,6 +12,7 @@ export default function SearchPage() {
   const [selected, setSelected] = useState<CardResult | null>(null);
   const [cost, setCost] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
+  const [watchError, setWatchError] = useState<string | null>(null);
 
   async function runSearch() {
     setResults(await api.searchCards(query));
@@ -35,6 +36,15 @@ export default function SearchPage() {
     }
   }
 
+  async function watch(card: CardResult) {
+    setWatchError(null);
+    try {
+      await api.addWatch({ card, target_price: null });
+    } catch {
+      setWatchError("Couldn't add this card to your watchlist. Try again.");
+    }
+  }
+
   return (
     <main style={{ padding: 24 }}>
       <h1>Search &amp; add</h1>
@@ -46,9 +56,11 @@ export default function SearchPage() {
             <img src={card.image_url} alt={card.name} width={80} />
             {card.name} — {card.set_name} — ${card.market_price ?? "?"}
             <button onClick={() => setSelected(card)}>Add</button>
+            <button onClick={() => watch(card)}>Watch</button>
           </li>
         ))}
       </ul>
+      {watchError && <p style={{ color: "#b91c1c" }}>{watchError}</p>}
       {selected && (
         <div>
           <h2>Add {selected.name}</h2>

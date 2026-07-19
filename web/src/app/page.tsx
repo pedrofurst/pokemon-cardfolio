@@ -23,7 +23,11 @@ export default function Home() {
   return (
     <main style={{ padding: 24 }}>
       <h1>My collection</h1>
-      <Link href="/search">+ Add cards</Link>
+      <nav>
+        <Link href="/search">+ Add cards</Link>{" "}
+        <Link href="/watchlist" style={{ marginLeft: 12 }}>Watchlist</Link>{" "}
+        <Link href="/opportunities" style={{ marginLeft: 12 }}>Opportunities</Link>
+      </nav>
       <button onClick={refresh} style={{ marginLeft: 12 }}>Refresh prices</button>
       {data && (
         <>

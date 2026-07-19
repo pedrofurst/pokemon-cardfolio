@@ -1,4 +1,4 @@
-import { CardResult, CollectionResponse } from "./types";
+import { CardResult, CollectionResponse, OpportunitiesResponse, WatchEntry } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
@@ -21,4 +21,26 @@ export const api = {
   listHoldings: () => fetch(`${BASE}/holdings`).then(json<CollectionResponse>),
   refreshPrices: () =>
     fetch(`${BASE}/prices/refresh`, { method: "POST" }).then(json<{ written: number }>),
+  listOpportunities: (moverPct?: number, dealPct?: number) => {
+    const params = new URLSearchParams();
+    if (moverPct !== undefined) {
+      params.set("mover_pct", String(moverPct));
+    }
+    if (dealPct !== undefined) {
+      params.set("deal_pct", String(dealPct));
+    }
+    const query = params.toString();
+    return fetch(`${BASE}/opportunities${query ? `?${query}` : ""}`).then(
+      json<OpportunitiesResponse>
+    );
+  },
+  listWatchlist: () => fetch(`${BASE}/watchlist`).then(json<WatchEntry[]>),
+  addWatch: (payload: Record<string, unknown>) =>
+    fetch(`${BASE}/watchlist`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(json<unknown>),
+  removeWatch: (id: string) =>
+    fetch(`${BASE}/watchlist/${id}`, { method: "DELETE" }).then(json<{ deleted: boolean }>),
 };
