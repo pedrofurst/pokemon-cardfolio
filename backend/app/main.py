@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.db import init_db
 from app.errors import CardNotFoundError, PriceProviderError
-from app.routers import cards, grading, holdings, opportunities, prices, watchlist
+from app.routers import cards, grading, history, holdings, opportunities, prices, watchlist
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ def create_application() -> FastAPI:
     application.include_router(watchlist.router)
     application.include_router(opportunities.router)
     application.include_router(grading.router)
+    application.include_router(history.router)
 
     @application.exception_handler(CardNotFoundError)
     def handle_card_not_found(request: Request, error: CardNotFoundError) -> JSONResponse:

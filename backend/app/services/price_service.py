@@ -1,3 +1,4 @@
+from app.errors import CardNotFoundError, PriceProviderError
 from app.models import PriceSnapshot
 from app.providers.base import CardResult, PriceProvider
 from app.repositories.card_repository import CardRepository
@@ -19,15 +20,22 @@ class PriceService:
     def search(self, query: str) -> list[CardResult]:
         return self.provider.search_cards(query)
 
-    def refresh_prices(self, owner_id: str = "me") -> int:
+    def refresh_prices(self, owner_id: str = "me") -> dict:
         card_ids = {h.card_id for h in self.holding_repo.list(owner_id)} | self.watch_repo.card_ids(owner_id)
         written = 0
+        failed = 0
         for card_id in card_ids:
-            price = self.provider.get_price(card_id)
+            # A scheduled batch refresh must not abort on one bad card: isolate
+            # each card's failure so the rest of the batch still gets written.
+            try:
+                price = self.provider.get_price(card_id)
+            except (PriceProviderError, CardNotFoundError):
+                failed += 1
+                continue
             self.price_repo.add(PriceSnapshot(
                 card_id=card_id, source=price.source,
                 market_price=price.market_price, currency=price.currency,
                 low=price.low, mid=price.mid, high=price.high, direct_low=price.direct_low,
             ))
             written += 1
-        return written
+        return {"written": written, "failed": failed}

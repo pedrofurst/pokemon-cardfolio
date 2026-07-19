@@ -15,6 +15,7 @@ from app.models import Card, PriceSnapshot
 from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
+from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
@@ -50,7 +51,8 @@ def _client(price_provider=None):
 
     def collection_override():
         s = Session(engine)
-        return CollectionService(CardRepository(s), HoldingRepository(s), PriceRepository(s))
+        return CollectionService(CardRepository(s), HoldingRepository(s), PriceRepository(s),
+                                  PortfolioRepository(s))
 
     def price_override():
         s = Session(engine)
@@ -110,21 +112,73 @@ def test_refresh_prices_returns_written_count():
     client = _client()
     _add_sample_holding(client)
     response = client.post("/prices/refresh")
-    assert response.json() == {"written": 1}
+    assert response.json() == {"written": 1, "failed": 0}
 
 
-def test_refresh_prices_translates_price_provider_error_to_502():
+def test_refresh_prices_records_a_portfolio_snapshot():
+    client = _client()
+    _add_sample_holding(client)
+    client.post("/prices/refresh")
+    with Session(client.test_engine) as session:
+        latest = PortfolioRepository(session).latest("me")
+    assert latest is not None
+
+
+def test_prices_status_is_null_before_any_refresh():
+    client = _client()
+    response = client.get("/prices/status")
+    assert response.json() == {"last_refresh": None}
+
+
+def test_prices_status_returns_iso_timestamp_after_refresh():
+    client = _client()
+    _add_sample_holding(client)
+    client.post("/prices/refresh")
+    response = client.get("/prices/status")
+    assert response.json()["last_refresh"] is not None
+
+
+def test_history_portfolio_returns_seeded_series():
+    client = _client()
+    _add_sample_holding(client)
+    client.post("/prices/refresh")
+    client.post("/prices/refresh")
+    response = client.get("/history/portfolio")
+    assert len(response.json()) == 2
+
+
+def test_history_card_returns_seeded_series():
+    client = _client()
+    with Session(client.test_engine) as session:
+        card_repo = CardRepository(session)
+        price_repo = PriceRepository(session)
+        card_repo.upsert(Card(id="base1-4", name="Charizard"))
+        price_repo.add(PriceSnapshot(card_id="base1-4", market_price=100.0))
+        price_repo.add(PriceSnapshot(card_id="base1-4", market_price=130.0))
+    response = client.get("/history/card/base1-4")
+    body = response.json()
+    assert [point["market_price"] for point in body] == [100.0, 130.0]
+
+
+def test_refresh_prices_with_failing_provider_does_not_500():
     client = _client(price_provider=RaisingProvider(PriceProviderError("provider down")))
     _add_sample_holding(client)
     response = client.post("/prices/refresh")
-    assert response.status_code == 502
+    assert response.status_code == 200
 
 
-def test_refresh_prices_translates_card_not_found_error_to_404():
+def test_refresh_prices_with_failing_provider_reports_failed_count():
+    client = _client(price_provider=RaisingProvider(PriceProviderError("provider down")))
+    _add_sample_holding(client)
+    response = client.post("/prices/refresh")
+    assert response.json() == {"written": 0, "failed": 1}
+
+
+def test_refresh_prices_with_card_not_found_provider_reports_failed_count():
     client = _client(price_provider=RaisingProvider(CardNotFoundError("base1-4")))
     _add_sample_holding(client)
     response = client.post("/prices/refresh")
-    assert response.status_code == 404
+    assert response.json() == {"written": 0, "failed": 1}
 
 
 def test_add_watch_then_list_watch_returns_it():

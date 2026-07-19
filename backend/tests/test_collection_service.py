@@ -1,6 +1,7 @@
 from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
+from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
 from app.services.collection_service import CollectionService
 
@@ -8,6 +9,7 @@ from app.services.collection_service import CollectionService
 def _service(session):
     return CollectionService(
         CardRepository(session), HoldingRepository(session), PriceRepository(session),
+        PortfolioRepository(session),
     )
 
 
@@ -48,3 +50,14 @@ def test_add_holding_with_no_market_price_has_negative_pnl(session):
                                     acquisition_cost=120.0, quantity=1, notes="")
     view = service.list_collection()[0]
     assert view.pnl == -120.0
+
+
+def test_record_portfolio_snapshot_writes_totals_matching_summary(session, sample_result):
+    service = _service(session)
+    service.add_holding_from_result(sample_result, condition="NM", is_graded=False,
+                                    acquisition_cost=120.0, quantity=1, notes="")
+    summary = service.summary()
+    snapshot = service.record_portfolio_snapshot()
+    assert (snapshot.total_cost, snapshot.total_value, snapshot.pnl) == (
+        summary.total_cost, summary.total_value, summary.pnl,
+    )

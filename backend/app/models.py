@@ -49,3 +49,12 @@ class PriceSnapshot(SQLModel, table=True):
     high: float | None = None
     direct_low: float | None = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PortfolioSnapshot(SQLModel, table=True):
+    id: str = Field(default_factory=_uuid, primary_key=True)
+    owner_id: str = "me"
+    total_cost: float = 0.0
+    total_value: float = 0.0
+    pnl: float = 0.0
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

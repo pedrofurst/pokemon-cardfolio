@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
-from app.models import Card, Holding, PriceSnapshot
+from app.models import Card, Holding, PortfolioSnapshot, PriceSnapshot
 from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
+from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
 
 
@@ -25,10 +26,11 @@ class CollectionSummary:
 
 class CollectionService:
     def __init__(self, card_repo: CardRepository, holding_repo: HoldingRepository,
-                 price_repo: PriceRepository) -> None:
+                 price_repo: PriceRepository, portfolio_repo: PortfolioRepository) -> None:
         self.card_repo = card_repo
         self.holding_repo = holding_repo
         self.price_repo = price_repo
+        self.portfolio_repo = portfolio_repo
 
     def add_holding_from_result(self, result: CardResult, condition: str, is_graded: bool,
                                 acquisition_cost: float, quantity: int, notes: str,
@@ -72,3 +74,10 @@ class CollectionService:
 
     def summary(self, owner_id: str = "me") -> CollectionSummary:
         return self.summarize(self.list_collection(owner_id))
+
+    def record_portfolio_snapshot(self, owner_id: str = "me") -> PortfolioSnapshot:
+        summary = self.summary(owner_id)
+        return self.portfolio_repo.add(PortfolioSnapshot(
+            owner_id=owner_id, total_cost=summary.total_cost,
+            total_value=summary.total_value, pnl=summary.pnl,
+        ))

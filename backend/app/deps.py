@@ -6,6 +6,7 @@ from app.db import get_session
 from app.providers.pokemontcgio import PokemonTcgIoProvider
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
+from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
@@ -21,7 +22,16 @@ _provider = PokemonTcgIoProvider(api_key=get_settings().pokemontcg_api_key)
 def get_collection_service(session: Session = Depends(get_session)) -> CollectionService:
     return CollectionService(
         CardRepository(session), HoldingRepository(session), PriceRepository(session),
+        PortfolioRepository(session),
     )
+
+
+def get_portfolio_repository(session: Session = Depends(get_session)) -> PortfolioRepository:
+    return PortfolioRepository(session)
+
+
+def get_price_repository(session: Session = Depends(get_session)) -> PriceRepository:
+    return PriceRepository(session)
 
 
 def get_price_service(session: Session = Depends(get_session)) -> PriceService:

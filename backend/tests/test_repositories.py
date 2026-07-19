@@ -1,6 +1,7 @@
-from app.models import Card, Holding, PriceSnapshot, WatchItem
+from app.models import Card, Holding, PortfolioSnapshot, PriceSnapshot, WatchItem
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
+from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 
@@ -56,3 +57,23 @@ def test_watch_card_ids_returns_watched_set(session):
     repo.add(WatchItem(card_id="base1-4", owner_id="me"))
     repo.add(WatchItem(card_id="base1-5", owner_id="me"))
     assert repo.card_ids("me") == {"base1-4", "base1-5"}
+
+
+def test_portfolio_history_returns_snapshots_in_ascending_order(session):
+    repo = PortfolioRepository(session)
+    repo.add(PortfolioSnapshot(owner_id="me", total_value=100.0))
+    repo.add(PortfolioSnapshot(owner_id="me", total_value=200.0))
+    history = repo.history("me")
+    assert [snapshot.total_value for snapshot in history] == [100.0, 200.0]
+
+
+def test_portfolio_latest_returns_most_recent(session):
+    repo = PortfolioRepository(session)
+    repo.add(PortfolioSnapshot(owner_id="me", total_value=100.0))
+    repo.add(PortfolioSnapshot(owner_id="me", total_value=200.0))
+    assert repo.latest("me").total_value == 200.0
+
+
+def test_portfolio_latest_returns_none_when_empty(session):
+    repo = PortfolioRepository(session)
+    assert repo.latest("me") is None
