@@ -112,6 +112,10 @@ class OpportunityService:
             number=result.number, rarity=result.rarity, image_url=result.image_url,
             tcgplayer_id=result.tcgplayer_id,
         ))
+        existing_watch_item = self.watch_repo.get_by_card(owner_id, result.id)
+        if existing_watch_item is not None:
+            existing_watch_item.target_price = target_price
+            return self.watch_repo.update(existing_watch_item)
         return self.watch_repo.add(WatchItem(
             card_id=result.id, owner_id=owner_id, target_price=target_price,
         ))

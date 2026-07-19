@@ -13,6 +13,18 @@ class WatchRepository:
         self.session.refresh(item)
         return item
 
+    def update(self, item: WatchItem) -> WatchItem:
+        self.session.add(item)
+        self.session.commit()
+        self.session.refresh(item)
+        return item
+
+    def get_by_card(self, owner_id: str, card_id: str) -> WatchItem | None:
+        statement = select(WatchItem).where(
+            WatchItem.owner_id == owner_id, WatchItem.card_id == card_id
+        )
+        return self.session.exec(statement).first()
+
     def list(self, owner_id: str) -> list[WatchItem]:
         statement = select(WatchItem).where(WatchItem.owner_id == owner_id)
         return list(self.session.exec(statement).all())

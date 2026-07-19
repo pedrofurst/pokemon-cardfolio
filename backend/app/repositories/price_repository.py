@@ -17,7 +17,7 @@ class PriceRepository:
         statement = (
             select(PriceSnapshot)
             .where(PriceSnapshot.card_id == card_id)
-            .order_by(PriceSnapshot.fetched_at.desc())
+            .order_by(PriceSnapshot.fetched_at.desc(), PriceSnapshot.id.desc())
         )
         return self.session.exec(statement).first()
 
@@ -25,7 +25,7 @@ class PriceRepository:
         statement = (
             select(PriceSnapshot)
             .where(PriceSnapshot.card_id == card_id)
-            .order_by(PriceSnapshot.fetched_at.desc())
+            .order_by(PriceSnapshot.fetched_at.desc(), PriceSnapshot.id.desc())
             .limit(2)
         )
         return list(self.session.exec(statement).all())
@@ -34,6 +34,6 @@ class PriceRepository:
         statement = (
             select(PriceSnapshot)
             .where(PriceSnapshot.card_id == card_id)
-            .order_by(PriceSnapshot.fetched_at.asc())
+            .order_by(PriceSnapshot.fetched_at.asc(), PriceSnapshot.id.asc())
         )
         return list(self.session.exec(statement).all())

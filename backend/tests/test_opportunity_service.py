@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app.models import Card, PriceSnapshot, WatchItem
+from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
@@ -106,3 +107,31 @@ def test_all_returns_the_three_signal_lists(session):
     result = _make_service(session).all()
 
     assert set(result.keys()) == {"movers", "deals", "target_hits"}
+
+
+def _card_result(card_id: str = "base1-4") -> CardResult:
+    return CardResult(
+        id=card_id, name="Charizard", set_name="Base", number="4",
+        rarity="Rare Holo", image_url="https://img/charizard.png",
+        tcgplayer_id=None, market_price=100.0,
+    )
+
+
+def test_add_watch_twice_for_same_card_creates_only_one_watch_item(session):
+    service = _make_service(session)
+    service.add_watch(_card_result(), target_price=50.0)
+    service.add_watch(_card_result(), target_price=75.0)
+
+    watch_items = WatchRepository(session).list("me")
+
+    assert len(watch_items) == 1
+
+
+def test_add_watch_twice_for_same_card_updates_target_price_to_latest_call(session):
+    service = _make_service(session)
+    service.add_watch(_card_result(), target_price=50.0)
+    service.add_watch(_card_result(), target_price=75.0)
+
+    watch_items = WatchRepository(session).list("me")
+
+    assert watch_items[0].target_price == 75.0

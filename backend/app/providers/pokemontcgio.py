@@ -80,11 +80,10 @@ class PokemonTcgIoProvider:
             raise PriceProviderError(f"price fetch failed for {card_id!r}") from error
         except ValueError as error:
             raise PriceProviderError(f"price fetch failed for {card_id!r}") from error
-        price = _extract_market_price(card)
-        if price is None:
-            raise PriceProviderError(f"no market price for {card_id!r}")
         prices = _extract_prices(card)
+        if prices["market"] is None:
+            raise PriceProviderError(f"no market price for {card_id!r}")
         return PriceResult(
-            card_id=card_id, market_price=price, currency="USD", source="tcgplayer",
+            card_id=card_id, market_price=prices["market"], currency="USD", source="tcgplayer",
             low=prices["low"], mid=prices["mid"], high=prices["high"], direct_low=prices["direct_low"],
         )
