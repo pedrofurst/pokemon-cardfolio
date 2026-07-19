@@ -30,6 +30,14 @@ class Holding(SQLModel, table=True):
     notes: str = ""
 
 
+class WatchItem(SQLModel, table=True):
+    id: str = Field(default_factory=_uuid, primary_key=True)
+    owner_id: str = "me"
+    card_id: str = Field(foreign_key="card.id", index=True)
+    target_price: float | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class PriceSnapshot(SQLModel, table=True):
     id: str = Field(default_factory=_uuid, primary_key=True)
     card_id: str = Field(foreign_key="card.id", index=True)

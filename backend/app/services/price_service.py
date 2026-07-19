@@ -3,21 +3,24 @@ from app.providers.base import CardResult, PriceProvider
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
+from app.repositories.watch_repository import WatchRepository
 
 
 class PriceService:
     def __init__(self, card_repo: CardRepository, price_repo: PriceRepository,
-                 provider: PriceProvider, holding_repo: HoldingRepository) -> None:
+                 provider: PriceProvider, holding_repo: HoldingRepository,
+                 watch_repo: WatchRepository) -> None:
         self.card_repo = card_repo
         self.price_repo = price_repo
         self.provider = provider
         self.holding_repo = holding_repo
+        self.watch_repo = watch_repo
 
     def search(self, query: str) -> list[CardResult]:
         return self.provider.search_cards(query)
 
     def refresh_prices(self, owner_id: str = "me") -> int:
-        card_ids = {h.card_id for h in self.holding_repo.list(owner_id)}
+        card_ids = {h.card_id for h in self.holding_repo.list(owner_id)} | self.watch_repo.card_ids(owner_id)
         written = 0
         for card_id in card_ids:
             price = self.provider.get_price(card_id)

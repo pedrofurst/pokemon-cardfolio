@@ -10,6 +10,7 @@ from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
+from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
 from app.services.price_service import PriceService
 
@@ -45,7 +46,8 @@ def _client(price_provider=None):
 
     def price_override():
         s = Session(engine)
-        return PriceService(CardRepository(s), PriceRepository(s), provider, HoldingRepository(s))
+        return PriceService(CardRepository(s), PriceRepository(s), provider, HoldingRepository(s),
+                             WatchRepository(s))
 
     app.dependency_overrides[get_session] = session_override
     app.dependency_overrides[get_collection_service] = collection_override
