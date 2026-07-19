@@ -21,6 +21,15 @@ class PriceRepository:
         )
         return self.session.exec(statement).first()
 
+    def latest_two(self, card_id: str) -> list[PriceSnapshot]:
+        statement = (
+            select(PriceSnapshot)
+            .where(PriceSnapshot.card_id == card_id)
+            .order_by(PriceSnapshot.fetched_at.desc())
+            .limit(2)
+        )
+        return list(self.session.exec(statement).all())
+
     def history(self, card_id: str) -> list[PriceSnapshot]:
         statement = (
             select(PriceSnapshot)
