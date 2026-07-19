@@ -55,6 +55,36 @@ export function PnLPill({
   );
 }
 
+export function ConnectionError({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <div className="empty empty--panel">
+      <svg
+        className="empty__glyph"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 20h.01M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 14 0M2 9.5a15 15 0 0 1 20 0" />
+        <path d="m2 2 20 20" />
+      </svg>
+      <div className="empty__title">Can&apos;t reach the backend</div>
+      <p style={{ margin: 0, maxWidth: "42ch" }}>
+        Make sure the API is running on{" "}
+        <code style={{ fontFamily: "var(--font-mono)" }}>http://localhost:8000</code> (uvicorn),
+        then try again.
+      </p>
+      {onRetry && (
+        <button className="btn btn--primary" style={{ marginTop: 6 }} onClick={onRetry}>
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function EmptyState({
   title,
   children,

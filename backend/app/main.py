@@ -22,7 +22,8 @@ from app.routers import (
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_ORIGINS = ["http://localhost:3000"]
+# Accept the web app on any localhost port (Next may fall back to 3001, etc.).
+ALLOWED_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
 
 
 @asynccontextmanager
@@ -46,7 +47,7 @@ def create_application() -> FastAPI:
     application = FastAPI(title="Cardfolio API", lifespan=lifespan)
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=ALLOWED_ORIGINS,
+        allow_origin_regex=ALLOWED_ORIGIN_REGEX,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

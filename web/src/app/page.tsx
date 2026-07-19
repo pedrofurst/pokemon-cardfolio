@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { CollectionResponse, PortfolioPoint, PriceStatus } from "@/lib/types";
 import { money, pct, timeAgo } from "@/lib/format";
-import { EmptyState, PageHead, PnLPill } from "@/components/ui";
+import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui";
 import { CountUp } from "@/components/CountUp";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
@@ -16,9 +16,10 @@ export default function Home() {
   const [priceStatus, setPriceStatus] = useState<PriceStatus | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshFailed, setLastRefreshFailed] = useState(0);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    async function load() {
+  const load = useCallback(async () => {
+    try {
       const [holdings, history, status] = await Promise.all([
         api.listHoldings(),
         api.getPortfolioHistory(),
@@ -27,23 +28,27 @@ export default function Home() {
       setData(holdings);
       setPortfolioHistory(history);
       setPriceStatus(status);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    async function run() {
+      await load();
+    }
+    run();
+  }, [load]);
 
   async function refresh() {
     setRefreshing(true);
     try {
       const result = await api.refreshPrices();
       setLastRefreshFailed(result.failed);
-      const [holdings, history, status] = await Promise.all([
-        api.listHoldings(),
-        api.getPortfolioHistory(),
-        api.getPriceStatus(),
-      ]);
-      setData(holdings);
-      setPortfolioHistory(history);
-      setPriceStatus(status);
+      await load();
+    } catch {
+      setLoadError(true);
     } finally {
       setRefreshing(false);
     }
@@ -100,6 +105,10 @@ export default function Home() {
         }
       />
 
+      {loadError && !data ? (
+        <ConnectionError onRetry={load} />
+      ) : (
+        <>
       {summary && (
         <section className="slab" aria-label="Portfolio value">
           <div className="slab__top">
@@ -201,6 +210,8 @@ export default function Home() {
           </div>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

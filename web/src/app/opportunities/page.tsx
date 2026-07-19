@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { OpportunitiesResponse, Signal } from "@/lib/types";
 import { money, pct } from "@/lib/format";
-import { EmptyState, PageHead } from "@/components/ui";
+import { ConnectionError, EmptyState, PageHead } from "@/components/ui";
 
 function SignalGroup({
   title,
@@ -59,13 +59,23 @@ function SignalGroup({
 
 export default function OpportunitiesPage() {
   const [data, setData] = useState<OpportunitiesResponse | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setData(await api.listOpportunities());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
+  }, []);
 
   useEffect(() => {
-    async function load() {
-      setData(await api.listOpportunities());
+    async function run() {
+      await load();
     }
-    load();
-  }, []);
+    run();
+  }, [load]);
 
   const total = data
     ? data.movers.length + data.deals.length + data.target_hits.length
@@ -79,7 +89,9 @@ export default function OpportunitiesPage() {
         subtitle="Computed from your stored price history — refresh prices on the collection to keep it current."
       />
 
-      {data && total === 0 ? (
+      {loadError && !data ? (
+        <ConnectionError onRetry={load} />
+      ) : data && total === 0 ? (
         <EmptyState
           title="No signals yet"
           action={

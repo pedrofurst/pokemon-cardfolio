@@ -1,25 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { WatchEntry } from "@/lib/types";
 import { money } from "@/lib/format";
-import { EmptyState, PageHead } from "@/components/ui";
+import { ConnectionError, EmptyState, PageHead } from "@/components/ui";
 
 export default function WatchlistPage() {
   const [entries, setEntries] = useState<WatchEntry[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    async function load() {
+  const load = useCallback(async () => {
+    try {
       setEntries(await api.listWatchlist());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
     }
-    load();
   }, []);
 
+  useEffect(() => {
+    async function run() {
+      await load();
+    }
+    run();
+  }, [load]);
+
   async function remove(id: string) {
-    await api.removeWatch(id);
-    setEntries(await api.listWatchlist());
+    try {
+      await api.removeWatch(id);
+      await load();
+    } catch {
+      setLoadError(true);
+    }
   }
 
   const list = entries ?? [];
@@ -37,7 +51,9 @@ export default function WatchlistPage() {
         }
       />
 
-      {entries !== null && list.length === 0 ? (
+      {loadError && entries === null ? (
+        <ConnectionError onRetry={load} />
+      ) : entries !== null && list.length === 0 ? (
         <EmptyState
           title="Nothing watched yet"
           action={

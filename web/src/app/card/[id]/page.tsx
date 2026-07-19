@@ -6,7 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { HoldingView, PricePoint } from "@/lib/types";
 import { money } from "@/lib/format";
-import { PnLPill } from "@/components/ui";
+import { ConnectionError, PnLPill } from "@/components/ui";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
 
@@ -15,13 +15,28 @@ export default function CardDetail() {
   const [view, setView] = useState<HoldingView | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [history, setHistory] = useState<PricePoint[]>([]);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    api.listHoldings().then((data) => {
-      setView(data.items.find((i) => i.holding.card_id === params.id) ?? null);
-      setLoaded(true);
-    });
-    api.getCardHistory(params.id).then(setHistory);
+    let active = true;
+    async function load() {
+      try {
+        const [data, cardHistory] = await Promise.all([
+          api.listHoldings(),
+          api.getCardHistory(params.id),
+        ]);
+        if (!active) return;
+        setView(data.items.find((i) => i.holding.card_id === params.id) ?? null);
+        setHistory(cardHistory);
+        setLoaded(true);
+      } catch {
+        if (active) setLoadError(true);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
   }, [params.id]);
 
   const backLink = (
@@ -32,6 +47,15 @@ export default function CardDetail() {
       Back to collection
     </Link>
   );
+
+  if (loadError) {
+    return (
+      <div className="container">
+        {backLink}
+        <ConnectionError onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
 
   if (!loaded) {
     return <div className="container">{backLink}<p style={{ color: "var(--muted)" }}>Loading…</p></div>;
