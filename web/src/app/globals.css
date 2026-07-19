@@ -1512,3 +1512,92 @@ a.tile:hover,
     animation: none;
   }
 }
+
+/* ---------- 3D holographic card viewer (Phase 6) ---------- */
+.holo3d {
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  border-radius: var(--radius);
+  background: radial-gradient(circle at 50% 30%, var(--slab-2) 0%, var(--slab-1) 72%);
+  overflow: hidden;
+  box-shadow: var(--shadow-lift);
+}
+
+.holo3d__stage {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
+.holo3d__stage:active {
+  cursor: grabbing;
+}
+
+.holo3d__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(10, 15, 25, 0.45);
+  color: var(--slab-ink);
+  font-size: 12px;
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.holo3d__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 15, 25, 0.45);
+  color: var(--slab-ink);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.holo3d__close:hover {
+  background: rgba(10, 15, 25, 0.7);
+  transform: scale(1.05);
+}
+
+.holo3d__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+}
+
+.holo3d__fallback-img {
+  max-height: 78%;
+  max-width: 78%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.holo3d__fallback-caption {
+  font-size: 12px;
+  color: var(--slab-muted);
+  font-family: var(--font-body);
+}
+
+.modal--wide {
+  max-width: 560px;
+}

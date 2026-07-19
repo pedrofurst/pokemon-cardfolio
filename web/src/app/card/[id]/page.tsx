@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { api } from "@/lib/api";
 import { HoldingView, PricePoint } from "@/lib/types";
 import { money } from "@/lib/format";
@@ -10,6 +11,11 @@ import { ConnectionError, PnLPill } from "@/components/ui";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
 import { useToast } from "@/components/Toast";
+
+const HoloCard3D = dynamic(
+  () => import("@/components/HoloCard3D").then((m) => m.HoloCard3D),
+  { ssr: false, loading: () => <div className="panel panel--pad">Loading 3D…</div> }
+);
 
 export default function CardDetail() {
   const params = useParams<{ id: string }>();
@@ -25,6 +31,7 @@ export default function CardDetail() {
   const [saleFee, setSaleFee] = useState("0");
   const [saleError, setSaleError] = useState<string | null>(null);
   const [submittingSale, setSubmittingSale] = useState(false);
+  const [viewing3D, setViewing3D] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -207,9 +214,22 @@ export default function CardDetail() {
             <button className="btn" onClick={openSellModal}>
               Log a sale
             </button>
+            {view.card?.image_url && (
+              <button className="btn" onClick={() => setViewing3D(true)}>
+                View in 3D ✨
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {viewing3D && view.card?.image_url && (
+        <div className="modal-scrim" onClick={() => setViewing3D(false)}>
+          <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
+            <HoloCard3D imageUrl={view.card.image_url} onClose={() => setViewing3D(false)} />
+          </div>
+        </div>
+      )}
 
       {selling && (
         <div className="modal-scrim" onClick={() => setSelling(false)}>
