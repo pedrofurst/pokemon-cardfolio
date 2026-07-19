@@ -26,7 +26,8 @@ export default function Home() {
       <nav>
         <Link href="/search">+ Add cards</Link>{" "}
         <Link href="/watchlist" style={{ marginLeft: 12 }}>Watchlist</Link>{" "}
-        <Link href="/opportunities" style={{ marginLeft: 12 }}>Opportunities</Link>
+        <Link href="/opportunities" style={{ marginLeft: 12 }}>Opportunities</Link>{" "}
+        <Link href="/grading" style={{ marginLeft: 12 }}>Grading</Link>
       </nav>
       <button onClick={refresh} style={{ marginLeft: 12 }}>Refresh prices</button>
       {data && (

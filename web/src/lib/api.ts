@@ -1,4 +1,10 @@
-import { CardResult, CollectionResponse, OpportunitiesResponse, WatchEntry } from "./types";
+import {
+  CardResult,
+  CollectionResponse,
+  GradingResult,
+  OpportunitiesResponse,
+  WatchEntry,
+} from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
@@ -43,4 +49,10 @@ export const api = {
     }).then(json<unknown>),
   removeWatch: (id: string) =>
     fetch(`${BASE}/watchlist/${id}`, { method: "DELETE" }).then(json<{ deleted: boolean }>),
+  evaluateGrading: (payload: Record<string, unknown>) =>
+    fetch(`${BASE}/grading/evaluate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(json<GradingResult>),
 };

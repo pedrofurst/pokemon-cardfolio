@@ -49,3 +49,14 @@ export interface WatchEntry {
   item: { id: string; card_id: string; target_price: number | null };
   card: { id: string; name: string; set_name: string; image_url: string } | null;
 }
+
+export interface GradingResult {
+  raw_net: number;
+  psa10_net: number | null;
+  psa9_net: number | null;
+  expected_graded_net: number | null;
+  uplift: number | null;
+  roi_pct: number | null;
+  recommendation: string;
+  rationale: string;
+}
