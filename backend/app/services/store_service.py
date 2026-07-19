@@ -2,11 +2,14 @@ import time
 from dataclasses import dataclass, field
 from urllib.parse import quote_plus
 
+from app.errors import PriceProviderError
 from app.providers.base import CardResult, SetInfo, StoreProvider
 
 HIT_THRESHOLD_USD = 15.0
 _NON_HIT_RARITIES = {"", "Common", "Uncommon"}
 _CACHE_TTL_SECONDS = 21600.0
+_SETS_WINDOW = 40
+MAX_SETS_SCANNED = 25
 
 _cache: dict[int, tuple[float, list["Booster"]]] = {}
 
@@ -82,22 +85,36 @@ class StoreService:
                 return boosters
 
         boosters = self._build_boosters(featured)
-        _cache[featured] = (time.monotonic() + _CACHE_TTL_SECONDS, boosters)
+        if boosters:
+            # Only cache a successful, non-empty result. An empty result usually
+            # means the scan window landed on unpriced sets or hit per-set errors;
+            # caching that for 6h would keep the store empty until the TTL expires.
+            _cache[featured] = (time.monotonic() + _CACHE_TTL_SECONDS, boosters)
         return boosters
 
     def _build_boosters(self, featured: int) -> list[Booster]:
-        sets = self.provider.list_sets(limit=featured * 2)
+        sets = self.provider.list_sets(limit=_SETS_WINDOW)
         boosters: list[Booster] = []
+        scanned = 0
         for set_info in sets:
             if len(boosters) >= featured:
                 break
+            if scanned >= MAX_SETS_SCANNED:
+                break
+            scanned += 1
             booster = self._build_booster(set_info)
             if booster is not None:
                 boosters.append(booster)
         return boosters
 
     def _build_booster(self, set_info: SetInfo) -> Booster | None:
-        cards = self.provider.get_set_cards(set_info.id)
+        try:
+            # Batch aggregation must tolerate per-set upstream failures — a
+            # transient rate-limit/502 on one set must not abort the whole
+            # store (same resilience pattern as PriceService.refresh_prices).
+            cards = self.provider.get_set_cards(set_info.id)
+        except PriceProviderError:
+            return None
         priced = [card for card in cards if card.market_price is not None]
         if len(priced) == 0:
             return None

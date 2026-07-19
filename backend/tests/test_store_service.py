@@ -1,5 +1,6 @@
 import pytest
 
+from app.errors import PriceProviderError
 from app.providers.base import CardResult, SetInfo
 from app.services.store_service import StoreService, clear_store_cache
 
@@ -10,6 +11,18 @@ SET_ALPHA = SetInfo(
 SET_BETA = SetInfo(
     id="set-b", name="Set Beta", series="Beta", total=50,
     release_date="2024-02-01", logo_url="logo-b",
+)
+SET_GAMMA = SetInfo(
+    id="set-g", name="Set Gamma", series="Gamma", total=80,
+    release_date="2026-05-01", logo_url="logo-g",
+)
+SET_DELTA = SetInfo(
+    id="set-d", name="Set Delta", series="Delta", total=90,
+    release_date="2026-06-01", logo_url="logo-d",
+)
+SET_ERROR = SetInfo(
+    id="set-e", name="Set Error", series="Error", total=60,
+    release_date="2026-04-01", logo_url="logo-e",
 )
 
 
@@ -39,9 +52,10 @@ BETA_CARDS = [
 
 
 class FakeStoreProvider:
-    def __init__(self, sets=None, cards_by_set=None):
+    def __init__(self, sets=None, cards_by_set=None, error_set_ids=None):
         self.sets = sets if sets is not None else [SET_ALPHA, SET_BETA]
         self.cards_by_set = cards_by_set or {"set-a": ALPHA_CARDS, "set-b": BETA_CARDS}
+        self.error_set_ids = error_set_ids or set()
         self.list_sets_call_count = 0
         self.get_set_cards_call_count = 0
 
@@ -51,6 +65,8 @@ class FakeStoreProvider:
 
     def get_set_cards(self, set_id):
         self.get_set_cards_call_count += 1
+        if set_id in self.error_set_ids:
+            raise PriceProviderError(f"get_set_cards failed for {set_id!r}")
         return self.cards_by_set.get(set_id, [])
 
 
@@ -155,5 +171,55 @@ def test_clear_store_cache_forces_a_rebuild():
     service = StoreService(provider)
     service.build()
     clear_store_cache()
+    service.build()
+    assert provider.list_sets_call_count == 2
+
+
+def test_build_skips_leading_unpriced_sets_and_uses_later_priced_ones():
+    provider = FakeStoreProvider(
+        sets=[SET_GAMMA, SET_DELTA, SET_ALPHA, SET_BETA],
+        cards_by_set={
+            "set-g": [],
+            "set-d": [_card("d1", "Delta One", None, "Rare Holo")],
+            "set-a": ALPHA_CARDS,
+            "set-b": BETA_CARDS,
+        },
+    )
+    service = StoreService(provider)
+    boosters = service.build()
+    assert [booster.set_id for booster in boosters] == ["set-a"]
+
+
+def test_build_skips_a_set_whose_get_set_cards_errors_but_returns_others():
+    provider = FakeStoreProvider(
+        sets=[SET_ERROR, SET_ALPHA],
+        cards_by_set={"set-a": ALPHA_CARDS},
+        error_set_ids={"set-e"},
+    )
+    service = StoreService(provider)
+    boosters = service.build()
+    assert [booster.set_id for booster in boosters] == ["set-a"]
+
+
+def test_build_result_still_respects_featured_count_after_skipping_sets():
+    provider = FakeStoreProvider(
+        sets=[SET_GAMMA, SET_ALPHA, SET_BETA, SET_DELTA],
+        cards_by_set={
+            "set-g": [],
+            "set-a": ALPHA_CARDS,
+            "set-b": BETA_CARDS,
+            "set-d": ALPHA_CARDS,
+        },
+    )
+    service = StoreService(provider)
+    boosters = service.build(featured=1)
+    assert len(boosters) == 1
+
+
+def test_build_does_not_cache_an_empty_result():
+    provider = FakeStoreProvider(sets=[SET_GAMMA], cards_by_set={"set-g": []})
+    service = StoreService(provider)
+    boosters = service.build()
+    assert boosters == []
     service.build()
     assert provider.list_sets_call_count == 2
