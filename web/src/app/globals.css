@@ -960,6 +960,49 @@ a.tile:hover,
   align-items: start;
 }
 
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.insight-card__label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.insight-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.insight-card__detail {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.insight-card__empty {
+  font-size: 13.5px;
+  color: var(--faint);
+}
+
+.insight-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.insight-card__link:hover .insight-card__name {
+  color: var(--brand-ink);
+}
+
 .stack {
   display: flex;
   flex-direction: column;

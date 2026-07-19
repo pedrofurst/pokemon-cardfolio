@@ -114,3 +114,21 @@ export interface SalesResponse {
   summary: RealizedSummary;
   items: SaleEntry[];
 }
+
+export interface DigestHolding {
+  card_id: string;
+  card_name: string;
+  pnl: number;
+  current_price: number | null;
+}
+
+export interface Digest {
+  summary: { total_cost: number; total_value: number; pnl: number; pnl_pct: number };
+  realized: RealizedSummary;
+  top_gainer: DigestHolding | null;
+  top_loser: DigestHolding | null;
+  movers: Signal[];
+  deals: Signal[];
+  target_hits: Signal[];
+  last_refresh: string | null;
+}

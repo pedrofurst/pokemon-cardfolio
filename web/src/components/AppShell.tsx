@@ -7,6 +7,12 @@ import type { ReactNode } from "react";
 type NavItem = { href: string; label: string; icon: ReactNode; match: (p: string) => boolean };
 
 const icons = {
+  today: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8" />
+    </svg>
+  ),
   collection: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -54,6 +60,7 @@ const icons = {
 };
 
 const NAV: NavItem[] = [
+  { href: "/today", label: "Today", icon: icons.today, match: (p) => p.startsWith("/today") },
   { href: "/", label: "Collection", icon: icons.collection, match: (p) => p === "/" || p.startsWith("/card") },
   { href: "/search", label: "Search & add", icon: icons.search, match: (p) => p.startsWith("/search") },
   { href: "/price-check", label: "Price check", icon: icons.priceCheck, match: (p) => p.startsWith("/price-check") },
