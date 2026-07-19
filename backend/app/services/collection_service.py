@@ -37,6 +37,7 @@ class CollectionService:
                                 owner_id: str = "me") -> Holding:
         self.card_repo.upsert(Card(
             id=result.id, name=result.name, set_name=result.set_name,
+            set_id=result.set_id, set_total=result.set_total,
             number=result.number, rarity=result.rarity, image_url=result.image_url,
             tcgplayer_id=result.tcgplayer_id,
         ))

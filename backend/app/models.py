@@ -12,6 +12,8 @@ class Card(SQLModel, table=True):
     id: str = Field(primary_key=True)  # API card id, e.g. "base1-4"
     name: str
     set_name: str = ""
+    set_id: str = ""
+    set_total: int | None = None
     number: str = ""
     rarity: str = ""
     image_url: str = ""

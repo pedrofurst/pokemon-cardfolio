@@ -12,6 +12,8 @@ class CardResult:
     image_url: str
     tcgplayer_id: str | None
     market_price: float | None
+    set_id: str = ""
+    set_total: int | None = None
 
 
 @dataclass

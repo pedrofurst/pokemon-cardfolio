@@ -35,15 +35,18 @@ def _to_optional_float(value: float | int | None) -> float | None:
 
 
 def _to_card_result(card: dict) -> CardResult:
+    set_info = card.get("set") or {}
     return CardResult(
         id=card["id"],
         name=card.get("name", ""),
-        set_name=(card.get("set") or {}).get("name", ""),
+        set_name=set_info.get("name", ""),
         number=card.get("number", ""),
         rarity=card.get("rarity", ""),
         image_url=(card.get("images") or {}).get("small", ""),
         tcgplayer_id=(card.get("tcgplayer") or {}).get("url"),
         market_price=_extract_market_price(card),
+        set_id=set_info.get("id", ""),
+        set_total=set_info.get("total") or set_info.get("printedTotal"),
     )
 
 

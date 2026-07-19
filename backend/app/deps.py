@@ -13,6 +13,7 @@ from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
 from app.services.digest_service import DigestService
 from app.services.grading_service import GradingService
+from app.services.insights_service import InsightsService
 from app.services.opportunity_service import OpportunityService
 from app.services.price_check_service import PriceCheckService
 from app.services.price_service import PriceService
@@ -58,6 +59,12 @@ def get_opportunity_service(session: Session = Depends(get_session)) -> Opportun
 
 def get_grading_service() -> GradingService:
     return GradingService()
+
+
+def get_insights_service(session: Session = Depends(get_session)) -> InsightsService:
+    return InsightsService(
+        CardRepository(session), HoldingRepository(session), PriceRepository(session),
+    )
 
 
 def get_sale_service(session: Session = Depends(get_session)) -> SaleService:
