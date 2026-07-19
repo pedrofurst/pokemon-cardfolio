@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { CollectionResponse, PortfolioPoint, PriceStatus } from "@/lib/types";
@@ -9,6 +9,12 @@ import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui"
 import { CountUp } from "@/components/CountUp";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
+import { TiltCard } from "@/components/TiltCard";
+import { SkeletonCardGrid, SkeletonSlab } from "@/components/Skeleton";
+
+type FlashDirection = "up" | "down";
+
+const FLASH_DURATION_MS = 900;
 
 export default function Home() {
   const [data, setData] = useState<CollectionResponse | null>(null);
@@ -17,6 +23,8 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshFailed, setLastRefreshFailed] = useState(0);
   const [loadError, setLoadError] = useState(false);
+  const [flashed, setFlashed] = useState<Record<string, FlashDirection>>({});
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,12 +49,47 @@ export default function Home() {
     run();
   }, [load]);
 
+  useEffect(() => {
+    return () => {
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+      }
+    };
+  }, []);
+
   async function refresh() {
     setRefreshing(true);
+    const previousPricesByCardId = new Map(
+      (data?.items ?? []).map((item) => [item.holding.card_id, item.current_price])
+    );
     try {
       const result = await api.refreshPrices();
       setLastRefreshFailed(result.failed);
-      await load();
+      const holdings = await api.listHoldings();
+      const nextFlashed: Record<string, FlashDirection> = {};
+      for (const item of holdings.items) {
+        const previousPrice = previousPricesByCardId.get(item.holding.card_id);
+        if (previousPrice === undefined) {
+          continue;
+        }
+        if (item.current_price !== null && previousPrice !== null && item.current_price !== previousPrice) {
+          nextFlashed[item.holding.card_id] = item.current_price > previousPrice ? "up" : "down";
+        }
+      }
+      setData(holdings);
+      const [history, status] = await Promise.all([api.getPortfolioHistory(), api.getPriceStatus()]);
+      setPortfolioHistory(history);
+      setPriceStatus(status);
+      setLoadError(false);
+      if (Object.keys(nextFlashed).length > 0) {
+        setFlashed(nextFlashed);
+        if (flashTimeoutRef.current) {
+          clearTimeout(flashTimeoutRef.current);
+        }
+        flashTimeoutRef.current = setTimeout(() => {
+          setFlashed({});
+        }, FLASH_DURATION_MS);
+      }
     } catch {
       setLoadError(true);
     } finally {
@@ -105,7 +148,17 @@ export default function Home() {
         }
       />
 
-      {loadError && !data ? (
+      {data === null && !loadError ? (
+        <>
+          <SkeletonSlab />
+          <section className="section">
+            <div className="section__head">
+              <span className="section__title">Holdings</span>
+            </div>
+            <SkeletonCardGrid />
+          </section>
+        </>
+      ) : loadError && !data ? (
         <ConnectionError onRetry={load} />
       ) : (
         <>
@@ -170,40 +223,44 @@ export default function Home() {
           <div className="card-grid">
             {items.map((item, index) => {
               const gain = item.pnl > 0;
+              const flashDirection = flashed[item.holding.card_id];
+              const flashClassName = flashDirection ? ` flash-${flashDirection}` : "";
               return (
                 <Reveal key={item.holding.id} index={index}>
-                  <Link
-                    href={`/card/${item.holding.card_id}`}
-                    className={`tile${gain ? " tile--gain" : ""}`}
-                  >
-                    <div className="tile__art">
-                      {item.card?.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.card.image_url} alt={item.card?.name ?? "Card"} />
-                      ) : (
-                        <span className="tile__art--empty">No image</span>
-                      )}
-                      <span className="tile__sheen" aria-hidden />
-                    </div>
-                    <div className="tile__body">
-                      <div>
-                        <div className="tile__name">{item.card?.name ?? item.holding.card_id}</div>
-                        <div className="tile__set">
-                          {item.card?.set_name || "—"} · {item.holding.condition}
-                          {item.holding.quantity > 1 ? ` · ×${item.holding.quantity}` : ""}
+                  <TiltCard>
+                    <Link
+                      href={`/card/${item.holding.card_id}`}
+                      className={`tile${gain ? " tile--gain" : ""}${flashClassName}`}
+                    >
+                      <div className="tile__art">
+                        {item.card?.image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.card.image_url} alt={item.card?.name ?? "Card"} />
+                        ) : (
+                          <span className="tile__art--empty">No image</span>
+                        )}
+                        <span className="tile__sheen" aria-hidden />
+                      </div>
+                      <div className="tile__body">
+                        <div>
+                          <div className="tile__name">{item.card?.name ?? item.holding.card_id}</div>
+                          <div className="tile__set">
+                            {item.card?.set_name || "—"} · {item.holding.condition}
+                            {item.holding.quantity > 1 ? ` · ×${item.holding.quantity}` : ""}
+                          </div>
+                        </div>
+                        <div className="tile__foot">
+                          <div className="tile__price">
+                            <span className="now">
+                              {item.current_price === null ? "Unpriced" : money(item.current_price)}
+                            </span>
+                            <span className="cost">cost {money(item.holding.acquisition_cost)}</span>
+                          </div>
+                          <PnLPill value={item.pnl} />
                         </div>
                       </div>
-                      <div className="tile__foot">
-                        <div className="tile__price">
-                          <span className="now">
-                            {item.current_price === null ? "Unpriced" : money(item.current_price)}
-                          </span>
-                          <span className="cost">cost {money(item.holding.acquisition_cost)}</span>
-                        </div>
-                        <PnLPill value={item.pnl} />
-                      </div>
-                    </div>
-                  </Link>
+                    </Link>
+                  </TiltCard>
                 </Reveal>
               );
             })}

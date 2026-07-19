@@ -6,9 +6,12 @@ import { api } from "@/lib/api";
 import { CardResult } from "@/lib/types";
 import { money } from "@/lib/format";
 import { EmptyState, PageHead } from "@/components/ui";
+import { TiltCard } from "@/components/TiltCard";
+import { useToast } from "@/components/Toast";
 
 export default function SearchPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CardResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -43,9 +46,11 @@ export default function SearchPage() {
         quantity: 1,
         condition: "raw",
       });
+      toast("Added to your collection");
       router.push("/");
     } catch {
       setAddError("Couldn't add this card. Check the backend is running and try again.");
+      toast("Couldn't add this card", "error");
     } finally {
       setSaving(false);
     }
@@ -56,8 +61,10 @@ export default function SearchPage() {
     try {
       await api.addWatch({ card, target_price: null });
       setWatched((prev) => new Set(prev).add(card.id));
+      toast("Added to watchlist");
     } catch {
       setWatchError("Couldn't add this card to your watchlist. Try again.");
+      toast("Couldn't add to watchlist", "error");
     }
   }
 
@@ -106,44 +113,46 @@ export default function SearchPage() {
       {results !== null && results.length > 0 && (
         <div className="card-grid">
           {results.map((card) => (
-            <div className="tile" key={card.id}>
-              <div className="tile__art">
-                {card.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={card.image_url} alt={card.name} />
-                ) : (
-                  <span className="tile__art--empty">No image</span>
-                )}
-              </div>
-              <div className="tile__body">
-                <div>
-                  <div className="tile__name">{card.name}</div>
-                  <div className="tile__set">
-                    {card.set_name || "—"} · #{card.number || "—"}
+            <TiltCard key={card.id}>
+              <div className="tile">
+                <div className="tile__art">
+                  {card.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.image_url} alt={card.name} />
+                  ) : (
+                    <span className="tile__art--empty">No image</span>
+                  )}
+                </div>
+                <div className="tile__body">
+                  <div>
+                    <div className="tile__name">{card.name}</div>
+                    <div className="tile__set">
+                      {card.set_name || "—"} · #{card.number || "—"}
+                    </div>
+                  </div>
+                  <div className="tile__foot">
+                    <div className="tile__price">
+                      <span className="now">
+                        {card.market_price === null ? "Unpriced" : money(card.market_price)}
+                      </span>
+                      <span className="cost">market</span>
+                    </div>
                   </div>
                 </div>
-                <div className="tile__foot">
-                  <div className="tile__price">
-                    <span className="now">
-                      {card.market_price === null ? "Unpriced" : money(card.market_price)}
-                    </span>
-                    <span className="cost">market</span>
-                  </div>
+                <div className="tile__actions">
+                  <button className="btn btn--primary btn--sm" onClick={() => setSelected(card)}>
+                    Add
+                  </button>
+                  <button
+                    className="btn btn--sm"
+                    onClick={() => watch(card)}
+                    disabled={watched.has(card.id)}
+                  >
+                    {watched.has(card.id) ? "Watching" : "Watch"}
+                  </button>
                 </div>
               </div>
-              <div className="tile__actions">
-                <button className="btn btn--primary btn--sm" onClick={() => setSelected(card)}>
-                  Add
-                </button>
-                <button
-                  className="btn btn--sm"
-                  onClick={() => watch(card)}
-                  disabled={watched.has(card.id)}
-                >
-                  {watched.has(card.id) ? "Watching" : "Watch"}
-                </button>
-              </div>
-            </div>
+            </TiltCard>
           ))}
         </div>
       )}
