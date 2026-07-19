@@ -24,6 +24,7 @@ class PriceService:
             self.price_repo.add(PriceSnapshot(
                 card_id=card_id, source=price.source,
                 market_price=price.market_price, currency=price.currency,
+                low=price.low, mid=price.mid, high=price.high, direct_low=price.direct_low,
             ))
             written += 1
         return written

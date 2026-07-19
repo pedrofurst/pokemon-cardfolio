@@ -18,15 +18,19 @@ def session():
 
 
 class FakeProvider:
-    def __init__(self, cards=None, price=350.0):
+    def __init__(self, cards=None, price=350.0, direct_low=300.0):
         self._cards = cards or []
         self._price = price
+        self._direct_low = direct_low
 
     def search_cards(self, query):
         return self._cards
 
     def get_price(self, card_id):
-        return PriceResult(card_id=card_id, market_price=self._price, currency="USD", source="fake")
+        return PriceResult(
+            card_id=card_id, market_price=self._price, currency="USD", source="fake",
+            direct_low=self._direct_low,
+        )
 
 
 @pytest.fixture

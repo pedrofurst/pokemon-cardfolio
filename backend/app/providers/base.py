@@ -20,6 +20,10 @@ class PriceResult:
     market_price: float
     currency: str
     source: str
+    low: float | None = None
+    mid: float | None = None
+    high: float | None = None
+    direct_low: float | None = None
 
 
 class PriceProvider(Protocol):

@@ -36,4 +36,8 @@ class PriceSnapshot(SQLModel, table=True):
     source: str = "tcgplayer"
     market_price: float = 0.0
     currency: str = "USD"
+    low: float | None = None
+    mid: float | None = None
+    high: float | None = None
+    direct_low: float | None = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

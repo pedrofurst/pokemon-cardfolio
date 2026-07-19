@@ -73,6 +73,25 @@ def test_get_price_missing_market_price_raises_price_provider_error():
 
 
 @respx.mock
+def test_get_price_maps_full_tcgplayer_price_detail():
+    card_with_full_prices = {
+        **CARD_JSON,
+        "tcgplayer": {
+            "prices": {
+                "holofoil": {"low": 1, "mid": 2, "high": 3, "market": 10, "directLow": 7}
+            }
+        },
+    }
+    respx.get(f"{BASE}/cards/base1-4").mock(
+        return_value=httpx.Response(200, json={"data": card_with_full_prices})
+    )
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    result = provider.get_price("base1-4")
+    assert result.market_price == 10.0
+    assert result.direct_low == 7.0
+
+
+@respx.mock
 def test_provider_wraps_transport_error():
     respx.get(f"{BASE}/cards").mock(side_effect=httpx.ConnectError("boom"))
     provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
