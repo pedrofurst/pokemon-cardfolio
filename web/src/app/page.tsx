@@ -250,6 +250,9 @@ export default function Home() {
                             {item.card?.set_name || "—"} · {item.holding.condition}
                             {item.holding.quantity > 1 ? ` · ×${item.holding.quantity}` : ""}
                           </div>
+                          {item.holding.variant !== "normal" && (
+                            <span className="badge badge--brand">{item.holding.variant}</span>
+                          )}
                         </div>
                         <div className="tile__foot">
                           <div className="tile__price">

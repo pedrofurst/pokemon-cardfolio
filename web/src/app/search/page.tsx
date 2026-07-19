@@ -4,23 +4,44 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { CardResult } from "@/lib/types";
-import { money } from "@/lib/format";
+import { useMoney } from "@/components/Currency";
 import { EmptyState, PageHead } from "@/components/ui";
 import { TiltCard } from "@/components/TiltCard";
+import { PackReveal } from "@/components/PackReveal";
 import { useToast } from "@/components/Toast";
+
+const CONDITION_OPTIONS: { value: string; label: string }[] = [
+  { value: "raw", label: "Raw" },
+  { value: "NM", label: "Near Mint (NM)" },
+  { value: "LP", label: "Lightly Played (LP)" },
+  { value: "MP", label: "Moderately Played (MP)" },
+  { value: "HP", label: "Heavily Played (HP)" },
+  { value: "DMG", label: "Damaged (DMG)" },
+];
+
+const VARIANT_OPTIONS: { value: string; label: string }[] = [
+  { value: "normal", label: "Normal" },
+  { value: "holofoil", label: "Holofoil" },
+  { value: "reverse", label: "Reverse Holo" },
+  { value: "1st_edition", label: "1st Edition" },
+];
 
 export default function SearchPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { fmt } = useMoney();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CardResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<CardResult | null>(null);
   const [cost, setCost] = useState("");
+  const [condition, setCondition] = useState("raw");
+  const [variant, setVariant] = useState("normal");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [watchError, setWatchError] = useState<string | null>(null);
   const [watched, setWatched] = useState<Set<string>>(new Set());
+  const [revealed, setRevealed] = useState<CardResult | null>(null);
 
   async function runSearch() {
     if (!query.trim()) return;
@@ -44,10 +65,16 @@ export default function SearchPage() {
         card: selected,
         acquisition_cost: Number(cost) || 0,
         quantity: 1,
-        condition: "raw",
+        condition,
+        variant,
       });
       toast("Added to your collection");
-      router.push("/");
+      if (selected.image_url) {
+        setRevealed(selected);
+      } else {
+        router.push("/");
+      }
+      setSelected(null);
     } catch {
       setAddError("Couldn't add this card. Check the backend is running and try again.");
       toast("Couldn't add this card", "error");
@@ -133,7 +160,7 @@ export default function SearchPage() {
                   <div className="tile__foot">
                     <div className="tile__price">
                       <span className="now">
-                        {card.market_price === null ? "Unpriced" : money(card.market_price)}
+                        {card.market_price === null ? "Unpriced" : fmt(card.market_price)}
                       </span>
                       <span className="cost">market</span>
                     </div>
@@ -181,7 +208,34 @@ export default function SearchPage() {
                 placeholder="0.00"
                 autoFocus
               />
-              <span className="hint">Condition defaults to raw. You can refine later.</span>
+            </label>
+            <label className="field">
+              <span className="label">Condition</span>
+              <select
+                className="input"
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+              >
+                {CONDITION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span className="label">Variant</span>
+              <select
+                className="input"
+                value={variant}
+                onChange={(e) => setVariant(e.target.value)}
+              >
+                {VARIANT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
             {addError && <p className="alert">{addError}</p>}
             <div className="row" style={{ justifyContent: "flex-end", marginTop: 4 }}>
@@ -194,6 +248,17 @@ export default function SearchPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {revealed && (
+        <PackReveal
+          imageUrl={revealed.image_url}
+          name={revealed.name}
+          onDone={() => {
+            setRevealed(null);
+            router.push("/");
+          }}
+        />
       )}
     </div>
   );

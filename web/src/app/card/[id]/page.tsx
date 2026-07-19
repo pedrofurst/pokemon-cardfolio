@@ -166,6 +166,9 @@ export default function CardDetail() {
             <h1 className="title">{view.card?.name ?? params.id}</h1>
             <div className="row wrap" style={{ marginTop: 10 }}>
               <span className="badge">{view.holding.condition}</span>
+              {view.holding.variant !== "normal" && (
+                <span className="badge badge--brand">{view.holding.variant}</span>
+              )}
               {view.holding.is_graded && <span className="badge badge--gold">graded</span>}
               {view.holding.quantity > 1 && <span className="badge">×{view.holding.quantity}</span>}
             </div>

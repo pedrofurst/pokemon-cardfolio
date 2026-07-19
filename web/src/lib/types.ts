@@ -18,6 +18,7 @@ export interface HoldingView {
     id: string;
     card_id: string;
     condition: string;
+    variant: string;
     is_graded: boolean;
     acquisition_cost: number;
     quantity: number;
