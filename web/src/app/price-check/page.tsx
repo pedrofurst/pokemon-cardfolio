@@ -46,13 +46,6 @@ function positionPct(value: number, domain: GaugeDomain): number {
   return Math.min(100, Math.max(0, raw));
 }
 
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 function deltaColor(deltaPct: number): string {
   if (deltaPct > 0) {
     return "var(--loss)";
@@ -68,9 +61,10 @@ function PriceGauge({ result }: { result: PriceCheckResult }) {
   const marketPosition = positionPct(result.market, domain);
   const offerPosition = positionPct(result.offer, domain);
   const tone = verdictMeta(result.verdict).tone;
-  const [markerPosition, setMarkerPosition] = useState(
-    prefersReducedMotion() ? offerPosition : marketPosition
-  );
+  // Deterministic initial render (server and client agree): start at the market
+  // position, then move to the offer after mount. Reduced-motion is handled in
+  // CSS (the marker transition is disabled), so we never read matchMedia here.
+  const [markerPosition, setMarkerPosition] = useState(marketPosition);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMarkerPosition(offerPosition));
