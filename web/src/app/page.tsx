@@ -65,7 +65,7 @@ export default function Home() {
               </svg>
               Add cards
             </Link>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <div style={{ position: "relative" }}>
               <button className="btn btn--primary" onClick={refresh} disabled={refreshing}>
                 <svg
                   className={refreshing ? "spin" : undefined}
@@ -81,7 +81,16 @@ export default function Home() {
                 {refreshing ? "Refreshing…" : "Refresh prices"}
               </button>
               {priceStatus?.last_refresh && (
-                <span style={{ color: "var(--muted)", fontSize: 12 }}>
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 5px)",
+                    right: 0,
+                    whiteSpace: "nowrap",
+                    color: "var(--muted)",
+                    fontSize: 12,
+                  }}
+                >
                   Updated {timeAgo(priceStatus.last_refresh)}
                   {lastRefreshFailed > 0 ? ` · ${lastRefreshFailed} couldn't be priced` : ""}
                 </span>
