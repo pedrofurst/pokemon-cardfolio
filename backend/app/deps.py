@@ -1,0 +1,29 @@
+from fastapi import Depends
+from sqlmodel import Session
+
+from app.config import get_settings
+from app.db import get_session
+from app.providers.pokemontcgio import PokemonTcgIoProvider
+from app.repositories.card_repository import CardRepository
+from app.repositories.holding_repository import HoldingRepository
+from app.repositories.price_repository import PriceRepository
+from app.services.collection_service import CollectionService
+from app.services.price_service import PriceService
+
+
+def _provider() -> PokemonTcgIoProvider:
+    return PokemonTcgIoProvider(api_key=get_settings().pokemontcg_api_key)
+
+
+def get_collection_service(session: Session = Depends(get_session)) -> CollectionService:
+    return CollectionService(
+        CardRepository(session), HoldingRepository(session),
+        PriceRepository(session), _provider(),
+    )
+
+
+def get_price_service(session: Session = Depends(get_session)) -> PriceService:
+    return PriceService(
+        CardRepository(session), PriceRepository(session),
+        _provider(), HoldingRepository(session),
+    )
