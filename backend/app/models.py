@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from uuid import uuid4
 
 from sqlmodel import Field, SQLModel
@@ -36,4 +36,4 @@ class PriceSnapshot(SQLModel, table=True):
     source: str = "tcgplayer"
     market_price: float = 0.0
     currency: str = "USD"
-    fetched_at: datetime = Field(default_factory=datetime.utcnow)
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

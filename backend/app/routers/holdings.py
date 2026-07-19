@@ -42,7 +42,7 @@ def add_holding(body: AddHoldingRequest,
 @router.get("")
 def list_holdings(service: CollectionService = Depends(get_collection_service)) -> dict:
     views = service.list_collection()
-    summary = service.summary()
+    summary = service.summarize(views)
     return {
         "summary": summary.__dict__,
         "items": [

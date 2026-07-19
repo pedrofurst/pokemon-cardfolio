@@ -10,20 +10,19 @@ from app.repositories.price_repository import PriceRepository
 from app.services.collection_service import CollectionService
 from app.services.price_service import PriceService
 
-
-def _provider() -> PokemonTcgIoProvider:
-    return PokemonTcgIoProvider(api_key=get_settings().pokemontcg_api_key)
+# Single long-lived provider (and its underlying httpx.Client) reused across
+# requests instead of constructing a new client per request.
+_provider = PokemonTcgIoProvider(api_key=get_settings().pokemontcg_api_key)
 
 
 def get_collection_service(session: Session = Depends(get_session)) -> CollectionService:
     return CollectionService(
-        CardRepository(session), HoldingRepository(session),
-        PriceRepository(session), _provider(),
+        CardRepository(session), HoldingRepository(session), PriceRepository(session),
     )
 
 
 def get_price_service(session: Session = Depends(get_session)) -> PriceService:
     return PriceService(
         CardRepository(session), PriceRepository(session),
-        _provider(), HoldingRepository(session),
+        _provider, HoldingRepository(session),
     )

@@ -41,7 +41,7 @@ def _client(price_provider=None):
 
     def collection_override():
         s = Session(engine)
-        return CollectionService(CardRepository(s), HoldingRepository(s), PriceRepository(s), FakeProvider(price=350.0))
+        return CollectionService(CardRepository(s), HoldingRepository(s), PriceRepository(s))
 
     def price_override():
         s = Session(engine)
@@ -60,10 +60,20 @@ def _add_sample_holding(client):
 
 def test_add_then_list_returns_pnl():
     client = _client()
-    payload = {"card": {"id": "base1-4", "name": "Charizard"}, "acquisition_cost": 120.0, "quantity": 1}
+    payload = {
+        "card": {"id": "base1-4", "name": "Charizard", "market_price": 350.0},
+        "acquisition_cost": 120.0, "quantity": 1,
+    }
     client.post("/holdings", json=payload)
     body = client.get("/holdings").json()
     assert body["items"][0]["pnl"] == 230.0
+
+
+def test_add_holding_with_no_market_price_does_not_500():
+    client = _client()
+    payload = {"card": {"id": "base1-4", "name": "Charizard"}, "acquisition_cost": 120.0, "quantity": 1}
+    response = client.post("/holdings", json=payload)
+    assert response.status_code == 200
 
 
 def test_search_cards_returns_mapped_card():

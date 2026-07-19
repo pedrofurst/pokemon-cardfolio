@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from app.models import Card, Holding, PriceSnapshot
-from app.providers.base import CardResult, PriceProvider
+from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
@@ -25,11 +25,10 @@ class CollectionSummary:
 
 class CollectionService:
     def __init__(self, card_repo: CardRepository, holding_repo: HoldingRepository,
-                 price_repo: PriceRepository, provider: PriceProvider) -> None:
+                 price_repo: PriceRepository) -> None:
         self.card_repo = card_repo
         self.holding_repo = holding_repo
         self.price_repo = price_repo
-        self.provider = provider
 
     def add_holding_from_result(self, result: CardResult, condition: str, is_graded: bool,
                                 acquisition_cost: float, quantity: int, notes: str,
@@ -44,11 +43,11 @@ class CollectionService:
             is_graded=is_graded, acquisition_cost=acquisition_cost,
             quantity=quantity, notes=notes,
         ))
-        price = self.provider.get_price(result.id)
-        self.price_repo.add(PriceSnapshot(
-            card_id=result.id, source=price.source,
-            market_price=price.market_price, currency=price.currency,
-        ))
+        if result.market_price is not None:
+            self.price_repo.add(PriceSnapshot(
+                card_id=result.id, source="tcgplayer",
+                market_price=result.market_price, currency="USD",
+            ))
         return holding
 
     def list_collection(self, owner_id: str = "me") -> list[HoldingView]:
@@ -64,10 +63,12 @@ class CollectionService:
             ))
         return views
 
-    def summary(self, owner_id: str = "me") -> CollectionSummary:
-        views = self.list_collection(owner_id)
+    def summarize(self, views: list[HoldingView]) -> CollectionSummary:
         total_cost = sum(v.holding.acquisition_cost * v.holding.quantity for v in views)
         total_value = sum((v.current_price or 0.0) * v.holding.quantity for v in views)
         pnl = total_value - total_cost
         pnl_pct = (pnl / total_cost * 100.0) if total_cost else 0.0
         return CollectionSummary(total_cost, total_value, pnl, pnl_pct)
+
+    def summary(self, owner_id: str = "me") -> CollectionSummary:
+        return self.summarize(self.list_collection(owner_id))

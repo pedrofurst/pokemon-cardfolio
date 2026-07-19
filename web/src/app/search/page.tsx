@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { CardResult } from "@/lib/types";
 
 export default function SearchPage() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CardResult[]>([]);
   const [selected, setSelected] = useState<CardResult | null>(null);
   const [cost, setCost] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
 
   async function runSearch() {
     setResults(await api.searchCards(query));
@@ -16,14 +19,20 @@ export default function SearchPage() {
 
   async function add() {
     if (!selected) return;
-    await api.addHolding({
-      card: selected,
-      acquisition_cost: Number(cost) || 0,
-      quantity: 1,
-      condition: "raw",
-    });
-    setSelected(null);
-    setCost("");
+    setAddError(null);
+    try {
+      await api.addHolding({
+        card: selected,
+        acquisition_cost: Number(cost) || 0,
+        quantity: 1,
+        condition: "raw",
+      });
+      setSelected(null);
+      setCost("");
+      router.push("/");
+    } catch {
+      setAddError("Couldn't add this card to your collection. Try again.");
+    }
   }
 
   return (
@@ -45,6 +54,7 @@ export default function SearchPage() {
           <h2>Add {selected.name}</h2>
           <input value={cost} onChange={(e) => setCost(e.target.value)} placeholder="Acquisition cost (USD)" />
           <button onClick={add}>Save</button>
+          {addError && <p style={{ color: "#b91c1c" }}>{addError}</p>}
         </div>
       )}
     </main>
