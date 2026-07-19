@@ -12,6 +12,7 @@ from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
 from app.services.grading_service import GradingService
 from app.services.opportunity_service import OpportunityService
+from app.services.price_check_service import PriceCheckService
 from app.services.price_service import PriceService
 
 # Single long-lived provider (and its underlying httpx.Client) reused across
@@ -39,6 +40,10 @@ def get_price_service(session: Session = Depends(get_session)) -> PriceService:
         CardRepository(session), PriceRepository(session),
         _provider, HoldingRepository(session), WatchRepository(session),
     )
+
+
+def get_price_check_service(session: Session = Depends(get_session)) -> PriceCheckService:
+    return PriceCheckService(_provider, PriceRepository(session))
 
 
 def get_opportunity_service(session: Session = Depends(get_session)) -> OpportunityService:

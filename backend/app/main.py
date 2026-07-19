@@ -6,9 +6,19 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.config import get_settings
 from app.db import init_db
 from app.errors import CardNotFoundError, PriceProviderError
-from app.routers import cards, grading, history, holdings, opportunities, prices, watchlist
+from app.routers import (
+    cards,
+    grading,
+    history,
+    holdings,
+    opportunities,
+    price_check,
+    prices,
+    watchlist,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +28,18 @@ ALLOWED_ORIGINS = ["http://localhost:3000"]
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     init_db()
+    scheduler_enabled = get_settings().enable_scheduler
+    if scheduler_enabled:
+        # Imported here (rather than at module load) to avoid a potential
+        # import cycle between app.main and app.scheduler / app.deps.
+        from app.scheduler import start_scheduler
+
+        start_scheduler()
     yield
+    if scheduler_enabled:
+        from app.scheduler import shutdown_scheduler
+
+        shutdown_scheduler()
 
 
 def create_application() -> FastAPI:
@@ -38,6 +59,7 @@ def create_application() -> FastAPI:
     application.include_router(opportunities.router)
     application.include_router(grading.router)
     application.include_router(history.router)
+    application.include_router(price_check.router)
 
     @application.exception_handler(CardNotFoundError)
     def handle_card_not_found(request: Request, error: CardNotFoundError) -> JSONResponse:

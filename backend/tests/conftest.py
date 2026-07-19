@@ -1,8 +1,21 @@
+import os
+
+# Must run before `app.config` (and anything importing it) is loaded, so the
+# very first Settings() built during the test session already has the
+# scheduler disabled — no background thread, no network, ever, in tests.
+os.environ["ENABLE_SCHEDULER"] = "0"
+# Keep any real (non-overridden) lifespan/db access confined to memory so
+# tests never write a stray cardfolio.db file to disk.
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+from app.config import get_settings
 from app.providers.base import CardResult, PriceResult
+
+get_settings.cache_clear()
 
 
 @pytest.fixture

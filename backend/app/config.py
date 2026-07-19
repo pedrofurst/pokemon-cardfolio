@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 
     pokemontcg_api_key: str = ""
     database_url: str = "sqlite:///cardfolio.db"
+    enable_scheduler: bool = True
+    refresh_interval_hours: int = 24
 
 
 @lru_cache
