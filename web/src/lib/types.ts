@@ -60,3 +60,30 @@ export interface GradingResult {
   recommendation: string;
   rationale: string;
 }
+
+export interface PortfolioPoint {
+  fetched_at: string;
+  total_value: number;
+  total_cost: number;
+  pnl: number;
+}
+
+export interface PricePoint {
+  fetched_at: string;
+  market_price: number;
+}
+
+export interface PriceCheckResult {
+  card_id: string;
+  offer: number;
+  market: number;
+  low: number | null;
+  direct_low: number | null;
+  verdict: string;
+  delta_pct: number;
+  detail: string;
+}
+
+export interface PriceStatus {
+  last_refresh: string | null;
+}

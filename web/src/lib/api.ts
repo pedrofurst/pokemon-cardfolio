@@ -3,6 +3,10 @@ import {
   CollectionResponse,
   GradingResult,
   OpportunitiesResponse,
+  PortfolioPoint,
+  PriceCheckResult,
+  PricePoint,
+  PriceStatus,
   WatchEntry,
 } from "./types";
 
@@ -55,4 +59,15 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then(json<GradingResult>),
+  getPortfolioHistory: () =>
+    fetch(`${BASE}/history/portfolio`).then(json<PortfolioPoint[]>),
+  getCardHistory: (id: string) =>
+    fetch(`${BASE}/history/card/${id}`).then(json<PricePoint[]>),
+  checkPrice: (payload: Record<string, unknown>) =>
+    fetch(`${BASE}/price-check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(json<PriceCheckResult>),
+  getPriceStatus: () => fetch(`${BASE}/prices/status`).then(json<PriceStatus>),
 };

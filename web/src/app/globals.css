@@ -1139,3 +1139,103 @@ a.tile:hover,
     transition: none;
   }
 }
+
+/* ---------- Motion primitives (Phase 4) ---------- */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: reveal-in 0.45s ease-out both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* ---------- Trend chart ---------- */
+.trend-chart {
+  position: relative;
+  width: 100%;
+}
+
+.trend-chart--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trend-chart__caption {
+  margin: 0;
+  font-size: 12px;
+  color: var(--faint);
+  text-align: center;
+}
+
+.trend-line {
+  transition: stroke-dashoffset 0.7s ease-out;
+}
+
+.trend-area {
+  transition: opacity 0.5s ease-out;
+}
+
+/* ---------- Value flash ---------- */
+@keyframes flash-up {
+  0% {
+    background: var(--gain-bg);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@keyframes flash-down {
+  0% {
+    background: var(--loss-bg);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.flash-up {
+  animation: flash-up 1s ease-out;
+}
+
+.flash-down {
+  animation: flash-down 1s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+  .spin {
+    animation: none;
+  }
+  .trend-line,
+  .trend-area {
+    transition: none;
+  }
+  .flash-up,
+  .flash-down {
+    animation: none;
+  }
+}
