@@ -8,6 +8,7 @@ from app.deps import (
     get_grading_service,
     get_opportunity_service,
     get_price_service,
+    get_sale_service,
 )
 from app.errors import CardNotFoundError, PriceProviderError
 from app.main import create_application
@@ -17,11 +18,13 @@ from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
+from app.repositories.sale_repository import SaleRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
 from app.services.grading_service import GradingService
 from app.services.opportunity_service import OpportunityService
 from app.services.price_service import PriceService
+from app.services.sale_service import SaleService
 
 from tests.conftest import FakeProvider
 
@@ -64,11 +67,16 @@ def _client(price_provider=None):
         return OpportunityService(CardRepository(s), PriceRepository(s), HoldingRepository(s),
                                    WatchRepository(s))
 
+    def sale_override():
+        s = Session(engine)
+        return SaleService(HoldingRepository(s), SaleRepository(s), CardRepository(s))
+
     app.dependency_overrides[get_session] = session_override
     app.dependency_overrides[get_collection_service] = collection_override
     app.dependency_overrides[get_price_service] = price_override
     app.dependency_overrides[get_opportunity_service] = opportunity_override
     app.dependency_overrides[get_grading_service] = lambda: GradingService()
+    app.dependency_overrides[get_sale_service] = sale_override
     client = TestClient(app)
     client.test_engine = engine
     return client
@@ -255,3 +263,66 @@ def test_grading_evaluate_with_negative_psa10_price_returns_422():
     payload = {"raw_price": 50.0, "psa10_price": -300.0}
     response = client.post("/grading/evaluate", json=payload)
     assert response.status_code == 422
+
+
+def _add_holding_with_quantity(client, quantity: int) -> str:
+    payload = {
+        "card": {"id": "base1-4", "name": "Charizard"},
+        "acquisition_cost": 50.0, "quantity": quantity,
+    }
+    return client.post("/holdings", json=payload).json()["id"]
+
+
+def test_sell_holding_happy_path_returns_the_sale():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=3)
+
+    response = client.post(f"/holdings/{holding_id}/sell", json={"quantity": 1, "sale_price": 100.0})
+
+    assert response.status_code == 200
+    assert response.json()["cost_basis"] == 50.0
+
+
+def test_sell_holding_more_than_held_returns_400():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+
+    response = client.post(f"/holdings/{holding_id}/sell", json={"quantity": 2, "sale_price": 100.0})
+
+    assert response.status_code == 400
+
+
+def test_sell_unknown_holding_returns_400():
+    client = _client()
+    response = client.post("/holdings/nonexistent-id/sell", json={"quantity": 1, "sale_price": 100.0})
+    assert response.status_code == 400
+
+
+def test_get_sales_returns_summary_and_items():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.post(f"/holdings/{holding_id}/sell", json={"quantity": 1, "sale_price": 100.0})
+
+    body = client.get("/sales").json()
+
+    assert set(body.keys()) == {"summary", "items"}
+
+
+def test_get_sales_summary_reflects_the_logged_sale():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.post(f"/holdings/{holding_id}/sell", json={"quantity": 1, "sale_price": 100.0})
+
+    body = client.get("/sales").json()
+
+    assert body["summary"]["sales_count"] == 1
+
+
+def test_get_sales_items_include_the_card():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.post(f"/holdings/{holding_id}/sell", json={"quantity": 1, "sale_price": 100.0})
+
+    body = client.get("/sales").json()
+
+    assert body["items"][0]["card"]["id"] == "base1-4"

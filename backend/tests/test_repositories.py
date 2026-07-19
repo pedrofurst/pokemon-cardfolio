@@ -1,8 +1,9 @@
-from app.models import Card, Holding, PortfolioSnapshot, PriceSnapshot, WatchItem
+from app.models import Card, Holding, PortfolioSnapshot, PriceSnapshot, Sale, WatchItem
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
+from app.repositories.sale_repository import SaleRepository
 from app.repositories.watch_repository import WatchRepository
 
 
@@ -17,6 +18,50 @@ def test_holding_list_filters_by_owner(session):
     session.commit()
     HoldingRepository(session).add(Holding(card_id="base1-4", owner_id="me"))
     assert len(HoldingRepository(session).list("me")) == 1
+
+
+def test_holding_get_returns_the_holding_when_found(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me"))
+    assert repo.get(holding.id).id == holding.id
+
+
+def test_holding_get_returns_none_when_missing(session):
+    repo = HoldingRepository(session)
+    assert repo.get("nonexistent-id") is None
+
+
+def test_holding_update_persists_field_changes(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me", quantity=3))
+    holding.quantity = 2
+    repo.update(holding)
+    assert repo.get(holding.id).quantity == 2
+
+
+def test_holding_delete_returns_true_when_found(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me"))
+    assert repo.delete(holding.id) is True
+
+
+def test_holding_delete_returns_false_when_missing(session):
+    repo = HoldingRepository(session)
+    assert repo.delete("nonexistent-id") is False
+
+
+def test_sale_add_then_list_returns_it(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = SaleRepository(session)
+    repo.add(Sale(card_id="base1-4", owner_id="me", quantity=1, sale_price=100.0, cost_basis=50.0))
+    assert len(repo.list("me")) == 1
 
 
 def test_price_latest_returns_most_recent(session):

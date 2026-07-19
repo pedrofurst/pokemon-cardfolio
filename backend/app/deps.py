@@ -8,12 +8,14 @@ from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
+from app.repositories.sale_repository import SaleRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
 from app.services.grading_service import GradingService
 from app.services.opportunity_service import OpportunityService
 from app.services.price_check_service import PriceCheckService
 from app.services.price_service import PriceService
+from app.services.sale_service import SaleService
 
 # Single long-lived provider (and its underlying httpx.Client) reused across
 # requests instead of constructing a new client per request.
@@ -55,3 +57,9 @@ def get_opportunity_service(session: Session = Depends(get_session)) -> Opportun
 
 def get_grading_service() -> GradingService:
     return GradingService()
+
+
+def get_sale_service(session: Session = Depends(get_session)) -> SaleService:
+    return SaleService(
+        HoldingRepository(session), SaleRepository(session), CardRepository(session),
+    )

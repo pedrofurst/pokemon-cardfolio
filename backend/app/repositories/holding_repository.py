@@ -16,3 +16,20 @@ class HoldingRepository:
     def list(self, owner_id: str) -> list[Holding]:
         statement = select(Holding).where(Holding.owner_id == owner_id)
         return list(self.session.exec(statement).all())
+
+    def get(self, holding_id: str) -> Holding | None:
+        return self.session.get(Holding, holding_id)
+
+    def update(self, holding: Holding) -> Holding:
+        self.session.add(holding)
+        self.session.commit()
+        self.session.refresh(holding)
+        return holding
+
+    def delete(self, holding_id: str) -> bool:
+        holding = self.session.get(Holding, holding_id)
+        if holding is None:
+            return False
+        self.session.delete(holding)
+        self.session.commit()
+        return True
