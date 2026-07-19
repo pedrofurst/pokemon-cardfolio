@@ -1,0 +1,87 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+
+type NavItem = { href: string; label: string; icon: ReactNode; match: (p: string) => boolean };
+
+const icons = {
+  collection: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+  search: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.2-3.2" />
+    </svg>
+  ),
+  watchlist: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ),
+  opportunities: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 17l6-6 4 4 7-7" />
+      <path d="M14 7h6v6" />
+    </svg>
+  ),
+  grading: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l7 3v5c0 4.4-3 8-7 10-4-2-7-5.6-7-10V6l7-3Z" />
+      <path d="m9 11 2 2 4-4" />
+    </svg>
+  ),
+};
+
+const NAV: NavItem[] = [
+  { href: "/", label: "Collection", icon: icons.collection, match: (p) => p === "/" || p.startsWith("/card") },
+  { href: "/search", label: "Search & add", icon: icons.search, match: (p) => p.startsWith("/search") },
+  { href: "/watchlist", label: "Watchlist", icon: icons.watchlist, match: (p) => p.startsWith("/watchlist") },
+  { href: "/opportunities", label: "Opportunities", icon: icons.opportunities, match: (p) => p.startsWith("/opportunities") },
+  { href: "/grading", label: "Grading", icon: icons.grading, match: (p) => p.startsWith("/grading") },
+];
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname() ?? "/";
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <Link href="/" className="brand" aria-label="Cardfolio home">
+          <span className="brand__mark" aria-hidden />
+          <span className="brand__name">
+            Cardfolio
+            <small>collection ledger</small>
+          </span>
+        </Link>
+        <nav className="nav" aria-label="Primary">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-link${item.match(pathname) ? " active" : ""}`}
+              aria-current={item.match(pathname) ? "page" : undefined}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+        <p className="sidebar__foot">
+          Prices via pokemontcg.io · USD.
+          <br />
+          For tracking, not advice.
+        </p>
+      </aside>
+      <main className="main">{children}</main>
+    </div>
+  );
+}

@@ -4,21 +4,56 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { OpportunitiesResponse, Signal } from "@/lib/types";
+import { money, pct } from "@/lib/format";
+import { EmptyState, PageHead } from "@/components/ui";
 
-function SignalList({ signals, emptyMessage }: { signals: Signal[]; emptyMessage: string }) {
-  if (signals.length === 0) {
-    return <p>{emptyMessage}</p>;
-  }
+function SignalGroup({
+  title,
+  hint,
+  tone,
+  signals,
+}: {
+  title: string;
+  hint: string;
+  tone: "gain" | "gold" | "brand";
+  signals: Signal[];
+}) {
+  const toneClass =
+    tone === "gain" ? "pill--up" : tone === "gold" ? "pill--gold" : "pill--brand";
   return (
-    <ul>
-      {signals.map((signal, index) => (
-        <li key={`${signal.card_id}-${index}`}>
-          <Link href={`/card/${signal.card_id}`}>{signal.card_name}</Link> — {signal.detail}
-          {" "}(current ${signal.current_price?.toFixed(2) ?? "?"} · reference $
-          {signal.reference_price?.toFixed(2) ?? "?"})
-        </li>
-      ))}
-    </ul>
+    <section className="section">
+      <div className="section__head">
+        <span className="section__title">{title}</span>
+        <span className="section__count">{signals.length}</span>
+      </div>
+      {signals.length === 0 ? (
+        <div className="panel panel--pad" style={{ color: "var(--muted)", fontSize: 14 }}>
+          {hint}
+        </div>
+      ) : (
+        <div className="panel">
+          {signals.map((signal, index) => (
+            <Link
+              href={`/card/${signal.card_id}`}
+              className="signal"
+              key={`${signal.card_id}-${index}`}
+            >
+              <div className="signal__main">
+                <div className="signal__name">{signal.card_name}</div>
+                <div className="signal__detail">{signal.detail}</div>
+              </div>
+              {signal.change_pct !== null && (
+                <span className={`pill ${toneClass}`}>{pct(signal.change_pct)}</span>
+              )}
+              <div className="signal__prices">
+                <div className="p-now">{money(signal.current_price)}</div>
+                <div className="p-ref">ref {money(signal.reference_price)}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -32,35 +67,54 @@ export default function OpportunitiesPage() {
     load();
   }, []);
 
+  const total = data
+    ? data.movers.length + data.deals.length + data.target_hits.length
+    : 0;
+
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Opportunities</h1>
-      <Link href="/">Back to collection</Link>
-      {data && (
-        <>
-          <section>
-            <h2>Movers</h2>
-            <SignalList
+    <div className="container">
+      <PageHead
+        eyebrow="Signals"
+        title="Opportunities"
+        subtitle="Computed from your stored price history — refresh prices on the collection to keep it current."
+      />
+
+      {data && total === 0 ? (
+        <EmptyState
+          title="No signals yet"
+          action={
+            <Link href="/" className="btn btn--primary">
+              Refresh prices
+            </Link>
+          }
+        >
+          Signals appear once there&apos;s price history: movers need two refreshes, deals need a listing
+          below market, and target hits need a watchlist target.
+        </EmptyState>
+      ) : (
+        data && (
+          <>
+            <SignalGroup
+              title="Movers"
+              tone="gain"
+              hint="No cards have moved past the threshold since the last refresh."
               signals={data.movers}
-              emptyMessage="Nothing yet — add cards and refresh prices"
             />
-          </section>
-          <section>
-            <h2>Deals</h2>
-            <SignalList
+            <SignalGroup
+              title="Deals"
+              tone="brand"
+              hint="No listings are sitting notably below market right now."
               signals={data.deals}
-              emptyMessage="Nothing yet — add cards and refresh prices"
             />
-          </section>
-          <section>
-            <h2>Target hits</h2>
-            <SignalList
+            <SignalGroup
+              title="Target hits"
+              tone="gold"
+              hint="No watchlist cards have reached their target price."
               signals={data.target_hits}
-              emptyMessage="Nothing yet — add cards and refresh prices"
             />
-          </section>
-        </>
+          </>
+        )
       )}
-    </main>
+    </div>
   );
 }
