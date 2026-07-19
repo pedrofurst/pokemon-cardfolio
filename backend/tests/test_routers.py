@@ -3,15 +3,17 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from app.db import get_session
-from app.deps import get_collection_service, get_price_service
+from app.deps import get_collection_service, get_opportunity_service, get_price_service
 from app.errors import CardNotFoundError, PriceProviderError
 from app.main import create_application
+from app.models import Card, PriceSnapshot
 from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
+from app.services.opportunity_service import OpportunityService
 from app.services.price_service import PriceService
 
 from tests.conftest import FakeProvider
@@ -49,10 +51,18 @@ def _client(price_provider=None):
         return PriceService(CardRepository(s), PriceRepository(s), provider, HoldingRepository(s),
                              WatchRepository(s))
 
+    def opportunity_override():
+        s = Session(engine)
+        return OpportunityService(CardRepository(s), PriceRepository(s), HoldingRepository(s),
+                                   WatchRepository(s))
+
     app.dependency_overrides[get_session] = session_override
     app.dependency_overrides[get_collection_service] = collection_override
     app.dependency_overrides[get_price_service] = price_override
-    return TestClient(app)
+    app.dependency_overrides[get_opportunity_service] = opportunity_override
+    client = TestClient(app)
+    client.test_engine = engine
+    return client
 
 
 def _add_sample_holding(client):
@@ -108,3 +118,36 @@ def test_refresh_prices_translates_card_not_found_error_to_404():
     _add_sample_holding(client)
     response = client.post("/prices/refresh")
     assert response.status_code == 404
+
+
+def test_add_watch_then_list_watch_returns_it():
+    client = _client()
+    payload = {"card": {"id": "base1-4", "name": "Charizard"}, "target_price": 200.0}
+    client.post("/watchlist", json=payload)
+    body = client.get("/watchlist").json()
+    assert body[0]["card"]["id"] == "base1-4"
+
+
+def test_delete_watch_returns_deleted_true():
+    client = _client()
+    payload = {"card": {"id": "base1-4", "name": "Charizard"}, "target_price": 200.0}
+    added = client.post("/watchlist", json=payload).json()
+    response = client.delete(f"/watchlist/{added['id']}")
+    assert response.json() == {"deleted": True}
+
+
+def test_opportunities_returns_three_keys_with_mover():
+    client = _client()
+    payload = {"card": {"id": "base1-4", "name": "Charizard"}, "target_price": None}
+    client.post("/watchlist", json=payload)
+
+    with Session(client.test_engine) as session:
+        card_repo = CardRepository(session)
+        price_repo = PriceRepository(session)
+        card_repo.upsert(Card(id="base1-4", name="Charizard"))
+        price_repo.add(PriceSnapshot(card_id="base1-4", market_price=100.0))
+        price_repo.add(PriceSnapshot(card_id="base1-4", market_price=130.0))
+
+    body = client.get("/opportunities").json()
+    assert set(body.keys()) == {"movers", "deals", "target_hits"}
+    assert body["movers"][0]["card_id"] == "base1-4"

@@ -9,6 +9,7 @@ from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
+from app.services.opportunity_service import OpportunityService
 from app.services.price_service import PriceService
 
 # Single long-lived provider (and its underlying httpx.Client) reused across
@@ -26,4 +27,11 @@ def get_price_service(session: Session = Depends(get_session)) -> PriceService:
     return PriceService(
         CardRepository(session), PriceRepository(session),
         _provider, HoldingRepository(session), WatchRepository(session),
+    )
+
+
+def get_opportunity_service(session: Session = Depends(get_session)) -> OpportunityService:
+    return OpportunityService(
+        CardRepository(session), PriceRepository(session),
+        HoldingRepository(session), WatchRepository(session),
     )

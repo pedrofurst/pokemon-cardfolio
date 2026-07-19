@@ -3,20 +3,10 @@ from pydantic import BaseModel
 
 from app.deps import get_collection_service
 from app.providers.base import CardResult
+from app.routers.schemas import CardPayload
 from app.services.collection_service import CollectionService
 
 router = APIRouter(prefix="/holdings", tags=["holdings"])
-
-
-class CardPayload(BaseModel):
-    id: str
-    name: str = ""
-    set_name: str = ""
-    number: str = ""
-    rarity: str = ""
-    image_url: str = ""
-    tcgplayer_id: str | None = None
-    market_price: float | None = None
 
 
 class AddHoldingRequest(BaseModel):

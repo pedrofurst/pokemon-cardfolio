@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.models import Card, WatchItem
+from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
@@ -102,3 +104,20 @@ class OpportunityService:
             "deals": self.deals(owner_id, deal_pct),
             "target_hits": self.target_hits(owner_id),
         }
+
+    def add_watch(self, result: CardResult, target_price: float | None,
+                  owner_id: str = "me") -> WatchItem:
+        self.card_repo.upsert(Card(
+            id=result.id, name=result.name, set_name=result.set_name,
+            number=result.number, rarity=result.rarity, image_url=result.image_url,
+            tcgplayer_id=result.tcgplayer_id,
+        ))
+        return self.watch_repo.add(WatchItem(
+            card_id=result.id, owner_id=owner_id, target_price=target_price,
+        ))
+
+    def list_watch(self, owner_id: str = "me") -> list[tuple[WatchItem, Card | None]]:
+        return [(item, self.card_repo.get(item.card_id)) for item in self.watch_repo.list(owner_id)]
+
+    def remove_watch(self, item_id: str) -> bool:
+        return self.watch_repo.delete(item_id)
