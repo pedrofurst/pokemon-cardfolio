@@ -84,6 +84,14 @@ function detectWebglSupport(): boolean {
   }
 }
 
+function resolveTextureUrl(imageUrl: string): string {
+  const isAbsoluteHttpUrl = /^https?:\/\//i.test(imageUrl);
+  if (!isAbsoluteHttpUrl) {
+    return imageUrl;
+  }
+  return `/api/card-image?url=${encodeURIComponent(imageUrl)}`;
+}
+
 export function HoloCard3D({ imageUrl, onClose }: HoloCard3DProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<ViewerStatus>(() =>
@@ -267,7 +275,7 @@ export function HoloCard3D({ imageUrl, onClose }: HoloCard3DProps) {
       const textureLoader = new THREE.TextureLoader();
       textureLoader.crossOrigin = "anonymous";
       textureLoader.load(
-        imageUrl,
+        resolveTextureUrl(imageUrl),
         (loadedTexture) => {
           if (disposed) {
             loadedTexture.dispose();
