@@ -16,6 +16,7 @@ class AddHoldingRequest(BaseModel):
     acquisition_cost: float = 0.0
     quantity: int = 1
     notes: str = ""
+    variant: str = "normal"
 
 
 @router.post("")
@@ -25,6 +26,7 @@ def add_holding(body: AddHoldingRequest,
     holding = service.add_holding_from_result(
         result, condition=body.condition, is_graded=body.is_graded,
         acquisition_cost=body.acquisition_cost, quantity=body.quantity, notes=body.notes,
+        variant=body.variant,
     )
     return holding.model_dump()
 

@@ -3,6 +3,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import get_session
+from app.providers.fx_provider import FxProvider
 from app.providers.pokemontcgio import PokemonTcgIoProvider
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
@@ -22,6 +23,7 @@ from app.services.sale_service import SaleService
 # Single long-lived provider (and its underlying httpx.Client) reused across
 # requests instead of constructing a new client per request.
 _provider = PokemonTcgIoProvider(api_key=get_settings().pokemontcg_api_key)
+_fx_provider = FxProvider()
 
 
 def get_collection_service(session: Session = Depends(get_session)) -> CollectionService:
@@ -59,6 +61,10 @@ def get_opportunity_service(session: Session = Depends(get_session)) -> Opportun
 
 def get_grading_service() -> GradingService:
     return GradingService()
+
+
+def get_fx_provider() -> FxProvider:
+    return _fx_provider
 
 
 def get_insights_service(session: Session = Depends(get_session)) -> InsightsService:

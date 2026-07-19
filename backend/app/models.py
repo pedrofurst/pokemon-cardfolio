@@ -30,6 +30,7 @@ class Holding(SQLModel, table=True):
     acquisition_date: date = Field(default_factory=date.today)
     quantity: int = 1
     notes: str = ""
+    variant: str = "normal"
 
 
 class WatchItem(SQLModel, table=True):

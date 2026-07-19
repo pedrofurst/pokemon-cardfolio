@@ -5,6 +5,7 @@ from sqlmodel.pool import StaticPool
 from app.db import get_session
 from app.deps import (
     get_collection_service,
+    get_fx_provider,
     get_grading_service,
     get_opportunity_service,
     get_price_service,
@@ -20,6 +21,7 @@ from app.repositories.portfolio_repository import PortfolioRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.sale_repository import SaleRepository
 from app.repositories.watch_repository import WatchRepository
+from app.routers.fx import clear_fx_cache
 from app.services.collection_service import CollectionService
 from app.services.grading_service import GradingService
 from app.services.opportunity_service import OpportunityService
@@ -42,7 +44,18 @@ class RaisingProvider:
         raise self._exception_to_raise
 
 
-def _client(price_provider=None):
+class FakeFxProvider:
+    def __init__(self, usd_brl=5.4, exception_to_raise=None):
+        self._usd_brl = usd_brl
+        self._exception_to_raise = exception_to_raise
+
+    def get_usd_brl(self):
+        if self._exception_to_raise is not None:
+            raise self._exception_to_raise
+        return self._usd_brl
+
+
+def _client(price_provider=None, fx_provider=None):
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     SQLModel.metadata.create_all(engine)
     app = create_application()
@@ -77,6 +90,8 @@ def _client(price_provider=None):
     app.dependency_overrides[get_opportunity_service] = opportunity_override
     app.dependency_overrides[get_grading_service] = lambda: GradingService()
     app.dependency_overrides[get_sale_service] = sale_override
+    app.dependency_overrides[get_fx_provider] = lambda: fx_provider or FakeFxProvider()
+    clear_fx_cache()
     client = TestClient(app)
     client.test_engine = engine
     return client
@@ -341,3 +356,56 @@ def test_get_sales_items_include_the_card():
     body = client.get("/sales").json()
 
     assert body["items"][0]["card"]["id"] == "base1-4"
+
+
+def test_get_fx_returns_usd_brl_from_provider():
+    client = _client(fx_provider=FakeFxProvider(usd_brl=5.4))
+    response = client.get("/fx")
+    assert response.json() == {"usd_brl": 5.4}
+
+
+def test_get_fx_with_failing_provider_returns_502():
+    client = _client(fx_provider=FakeFxProvider(exception_to_raise=PriceProviderError("fx down")))
+    response = client.get("/fx")
+    assert response.status_code == 502
+
+
+def test_add_holding_with_variant_persists_it_on_the_holding():
+    client = _client()
+    payload = {
+        "card": {"id": "base1-4", "name": "Charizard"},
+        "acquisition_cost": 120.0, "quantity": 1, "variant": "holofoil",
+    }
+    response = client.post("/holdings", json=payload)
+    assert response.json()["variant"] == "holofoil"
+
+
+def test_add_holding_without_variant_defaults_to_normal():
+    client = _client()
+    payload = {"card": {"id": "base1-4", "name": "Charizard"}, "acquisition_cost": 120.0, "quantity": 1}
+    response = client.post("/holdings", json=payload)
+    assert response.json()["variant"] == "normal"
+
+
+def test_add_holding_with_set_data_upserts_card_set_id():
+    client = _client()
+    payload = {
+        "card": {"id": "base1-4", "name": "Charizard", "set_id": "base1", "set_total": 102},
+        "acquisition_cost": 120.0, "quantity": 1,
+    }
+    client.post("/holdings", json=payload)
+    with Session(client.test_engine) as session:
+        card = CardRepository(session).get("base1-4")
+    assert card.set_id == "base1"
+
+
+def test_add_holding_with_set_data_upserts_card_set_total():
+    client = _client()
+    payload = {
+        "card": {"id": "base1-4", "name": "Charizard", "set_id": "base1", "set_total": 102},
+        "acquisition_cost": 120.0, "quantity": 1,
+    }
+    client.post("/holdings", json=payload)
+    with Session(client.test_engine) as session:
+        card = CardRepository(session).get("base1-4")
+    assert card.set_total == 102

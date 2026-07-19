@@ -34,7 +34,7 @@ class CollectionService:
 
     def add_holding_from_result(self, result: CardResult, condition: str, is_graded: bool,
                                 acquisition_cost: float, quantity: int, notes: str,
-                                owner_id: str = "me") -> Holding:
+                                owner_id: str = "me", variant: str = "normal") -> Holding:
         self.card_repo.upsert(Card(
             id=result.id, name=result.name, set_name=result.set_name,
             set_id=result.set_id, set_total=result.set_total,
@@ -44,7 +44,7 @@ class CollectionService:
         holding = self.holding_repo.add(Holding(
             card_id=result.id, owner_id=owner_id, condition=condition,
             is_graded=is_graded, acquisition_cost=acquisition_cost,
-            quantity=quantity, notes=notes,
+            quantity=quantity, notes=notes, variant=variant,
         ))
         if result.market_price is not None:
             self.price_repo.add(PriceSnapshot(
