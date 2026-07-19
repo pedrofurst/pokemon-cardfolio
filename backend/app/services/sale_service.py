@@ -32,19 +32,31 @@ class SaleService:
         card_id = holding.card_id
         cost_basis = holding.acquisition_cost
 
-        holding.quantity -= quantity
-        if holding.quantity == 0:
-            self.holding_repo.delete(holding.id)
-        else:
-            self.holding_repo.update(holding)
+        # holding_repo and sale_repo are constructed from the same SQLModel
+        # Session (see deps.py and the `session` test fixture). We bypass
+        # their individual add/update/delete methods here and operate on the
+        # shared session directly so the holding mutation and the new Sale
+        # row commit together in a single transaction: either both persist
+        # or, if the commit fails, neither does. Two separate commits (one
+        # per repo call) would risk reducing/deleting the holding while the
+        # Sale row silently fails to be written.
+        session = self.sale_repo.session
 
-        # Create (and commit/refresh) the Sale last so it isn't left expired
-        # by the holding's own commit above (SQLAlchemy expires all
-        # in-session instances on commit by default).
-        return self.sale_repo.add(Sale(
+        sale = Sale(
             card_id=card_id, owner_id=owner_id, quantity=quantity,
             sale_price=sale_price, fee=fee, cost_basis=cost_basis,
-        ))
+        )
+        session.add(sale)
+
+        holding.quantity -= quantity
+        if holding.quantity == 0:
+            session.delete(holding)
+        else:
+            session.add(holding)
+
+        session.commit()
+        session.refresh(sale)
+        return sale
 
     def realized_summary(self, owner_id: str = "me") -> RealizedSummary:
         sales = self.sale_repo.list(owner_id)
