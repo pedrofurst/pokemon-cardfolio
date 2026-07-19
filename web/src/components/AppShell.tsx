@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useCurrency } from "@/components/Currency";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match: (p: string) => boolean };
 
@@ -70,6 +71,31 @@ const NAV: NavItem[] = [
   { href: "/sales", label: "Sales", icon: icons.sales, match: (p) => p.startsWith("/sales") },
 ];
 
+function CurrencyToggle() {
+  const { currency, setCurrency } = useCurrency();
+
+  return (
+    <div className="ccy-toggle" role="group" aria-label="Display currency">
+      <button
+        type="button"
+        className={`ccy-toggle__option${currency === "USD" ? " active" : ""}`}
+        aria-pressed={currency === "USD"}
+        onClick={() => setCurrency("USD")}
+      >
+        USD
+      </button>
+      <button
+        type="button"
+        className={`ccy-toggle__option${currency === "BRL" ? " active" : ""}`}
+        aria-pressed={currency === "BRL"}
+        onClick={() => setCurrency("BRL")}
+      >
+        BRL
+      </button>
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
 
@@ -96,11 +122,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <p className="sidebar__foot">
-          Prices via pokemontcg.io · USD.
-          <br />
-          For tracking, not advice.
-        </p>
+        <div className="sidebar__foot">
+          <CurrencyToggle />
+          <p>
+            Prices via pokemontcg.io.
+            <br />
+            For tracking, not advice.
+          </p>
+        </div>
       </aside>
       <main className="main">{children}</main>
     </div>

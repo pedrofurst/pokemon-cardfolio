@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { CurrencyProvider } from "@/components/Currency";
 import { ToastProvider } from "@/components/Toast";
 
 const bricolage = Bricolage_Grotesque({
@@ -38,9 +39,11 @@ export default function RootLayout({
       className={`${bricolage.variable} ${hanken.variable} ${spaceMono.variable}`}
     >
       <body>
-        <ToastProvider>
-          <AppShell>{children}</AppShell>
-        </ToastProvider>
+        <CurrencyProvider>
+          <ToastProvider>
+            <AppShell>{children}</AppShell>
+          </ToastProvider>
+        </CurrencyProvider>
       </body>
     </html>
   );

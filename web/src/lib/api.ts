@@ -2,6 +2,7 @@ import {
   CardResult,
   CollectionResponse,
   Digest,
+  FxResponse,
   GradingResult,
   OpportunitiesResponse,
   PortfolioPoint,
@@ -83,4 +84,5 @@ export const api = {
     }).then(json<Sale>),
   getSales: () => fetch(`${BASE}/sales`).then(json<SalesResponse>),
   getDigest: () => fetch(`${BASE}/digest`).then(json<Digest>),
+  getFx: () => fetch(`${BASE}/fx`).then(json<FxResponse>),
 };

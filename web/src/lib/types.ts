@@ -1,3 +1,7 @@
+export interface FxResponse {
+  usd_brl: number;
+}
+
 export interface CardResult {
   id: string;
   name: string;
