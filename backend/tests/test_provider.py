@@ -24,7 +24,25 @@ def test_search_cards_maps_fields():
     )
     provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
     result = provider.search_cards("charizard")[0]
+    assert result.id == "base1-4"
+    assert result.name == "Charizard"
+    assert result.set_name == "Base"
+    assert result.number == "4"
+    assert result.rarity == "Rare Holo"
+    assert result.image_url == "https://img/charizard.png"
     assert result.market_price == 350.0
+
+
+@respx.mock
+def test_search_cards_malformed_json_raises_price_provider_error():
+    respx.get(f"{BASE}/cards").mock(return_value=httpx.Response(200, text="not json"))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.search_cards("charizard")
+        raised = False
+    except PriceProviderError:
+        raised = True
+    assert raised
 
 
 @respx.mock
@@ -35,6 +53,21 @@ def test_get_price_missing_card_raises_not_found():
         provider.get_price("nope")
         raised = False
     except CardNotFoundError:
+        raised = True
+    assert raised
+
+
+@respx.mock
+def test_get_price_missing_market_price_raises_price_provider_error():
+    card_without_price = {**CARD_JSON, "tcgplayer": {"prices": {}}}
+    respx.get(f"{BASE}/cards/base1-4").mock(
+        return_value=httpx.Response(200, json={"data": card_without_price})
+    )
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.get_price("base1-4")
+        raised = False
+    except PriceProviderError:
         raised = True
     assert raised
 

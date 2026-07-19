@@ -41,9 +41,12 @@ class PokemonTcgIoProvider:
                 headers=self._headers,
             )
             response.raise_for_status()
+            cards = response.json().get("data", [])
         except httpx.HTTPError as error:
             raise PriceProviderError(f"search failed for {query!r}") from error
-        return [_to_card_result(card) for card in response.json().get("data", [])]
+        except ValueError as error:
+            raise PriceProviderError(f"search failed for {query!r}") from error
+        return [_to_card_result(card) for card in cards]
 
     def get_price(self, card_id: str) -> PriceResult:
         try:
@@ -53,9 +56,11 @@ class PokemonTcgIoProvider:
             if response.status_code == 404:
                 raise CardNotFoundError(card_id)
             response.raise_for_status()
+            card = response.json().get("data", {})
         except httpx.HTTPError as error:
             raise PriceProviderError(f"price fetch failed for {card_id!r}") from error
-        card = response.json().get("data", {})
+        except ValueError as error:
+            raise PriceProviderError(f"price fetch failed for {card_id!r}") from error
         price = _extract_market_price(card)
         if price is None:
             raise PriceProviderError(f"no market price for {card_id!r}")
