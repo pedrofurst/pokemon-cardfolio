@@ -39,11 +39,18 @@ const icons = {
       <path d="m9 11 2 2 4-4" />
     </svg>
   ),
+  priceCheck: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.5 12.4 12.9 20a2 2 0 0 1-2.8 0l-6.1-6.1a2 2 0 0 1 0-2.8l7.6-7.6a2 2 0 0 1 1.4-.6H19a1.5 1.5 0 0 1 1.5 1.5v6.1a2 2 0 0 1-.6 1.4Z" />
+      <circle cx="14.5" cy="8.5" r="1.5" />
+    </svg>
+  ),
 };
 
 const NAV: NavItem[] = [
   { href: "/", label: "Collection", icon: icons.collection, match: (p) => p === "/" || p.startsWith("/card") },
   { href: "/search", label: "Search & add", icon: icons.search, match: (p) => p.startsWith("/search") },
+  { href: "/price-check", label: "Price check", icon: icons.priceCheck, match: (p) => p.startsWith("/price-check") },
   { href: "/watchlist", label: "Watchlist", icon: icons.watchlist, match: (p) => p.startsWith("/watchlist") },
   { href: "/opportunities", label: "Opportunities", icon: icons.opportunities, match: (p) => p.startsWith("/opportunities") },
   { href: "/grading", label: "Grading", icon: icons.grading, match: (p) => p.startsWith("/grading") },

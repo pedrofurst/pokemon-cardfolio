@@ -1238,4 +1238,92 @@ a.tile:hover,
   .flash-down {
     animation: none;
   }
+  .gauge__marker {
+    transition: none;
+  }
+}
+
+/* ---------- Fair-price recommendation tone ---------- */
+.reco--fair {
+  background: var(--brand-bg);
+  color: var(--brand-ink);
+}
+
+/* ---------- Price-check gauge ---------- */
+.gauge {
+  padding: 0 8px;
+}
+
+.gauge__track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gain-bg), var(--gold-bg), var(--loss-bg));
+  border: 1px solid var(--line);
+  margin: 40px 0 32px;
+}
+
+.gauge__tick {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.gauge__tick-line {
+  width: 2px;
+  height: 10px;
+  background: var(--line-strong);
+}
+
+.gauge__marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.7s ease-out;
+}
+
+.gauge__marker-dot {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: currentColor;
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.gauge__marker-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: currentColor;
+  white-space: nowrap;
+}
+
+.gauge__marker--gain {
+  color: var(--gain);
+}
+
+.gauge__marker--gold {
+  color: var(--gold);
+}
+
+.gauge__marker--loss {
+  color: var(--loss);
+}
+
+.gauge__marker--brand {
+  color: var(--brand-ink);
 }
