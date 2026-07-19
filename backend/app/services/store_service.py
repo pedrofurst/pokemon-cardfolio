@@ -1,5 +1,8 @@
+import dataclasses
+import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from app.errors import PriceProviderError
@@ -10,6 +13,9 @@ _NON_HIT_RARITIES = {"", "Common", "Uncommon"}
 _CACHE_TTL_SECONDS = 21600.0
 _SETS_WINDOW = 40
 MAX_SETS_SCANNED = 25
+
+# app/services/store_service.py -> app/services -> app -> backend
+_CACHE_FILE_PATH = Path(__file__).resolve().parent.parent.parent / ".store_cache.json"
 
 _cache: dict[int, tuple[float, list["Booster"]]] = {}
 
@@ -43,6 +49,81 @@ class Booster:
 
 def clear_store_cache() -> None:
     _cache.clear()
+    if _CACHE_FILE_PATH.exists():
+        _CACHE_FILE_PATH.unlink()
+
+
+def has_fresh_cache(featured: int = 6) -> bool:
+    """True if a fresh result is already available (in-process or on disk).
+
+    Used by startup warm-up to skip spawning a warming thread entirely when
+    there is nothing to warm.
+    """
+    cached = _cache.get(featured)
+    if cached is not None and time.monotonic() < cached[0]:
+        return True
+    return _read_disk_cache(featured) is not None
+
+
+def _booster_to_dict(booster: "Booster") -> dict:
+    return dataclasses.asdict(booster)
+
+
+def _booster_from_dict(data: dict) -> "Booster":
+    chase_cards = [ChaseCard(**card) for card in data.get("chase_cards", [])]
+    return Booster(
+        set_id=data["set_id"],
+        set_name=data["set_name"],
+        series=data["series"],
+        release_date=data["release_date"],
+        logo_url=data["logo_url"],
+        total=data["total"],
+        chase_cards=chase_cards,
+        good_count=data["good_count"],
+        hit_pool=data["hit_pool"],
+        est_hit_pct=data["est_hit_pct"],
+        one_in=data["one_in"],
+        top_chase_value=data["top_chase_value"],
+        booster_links=data.get("booster_links", {}),
+    )
+
+
+def _write_disk_cache(featured: int, boosters: list["Booster"]) -> None:
+    payload = {
+        "built_at": time.time(),
+        "featured": featured,
+        "boosters": [_booster_to_dict(booster) for booster in boosters],
+    }
+    try:
+        _CACHE_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _CACHE_FILE_PATH.write_text(json.dumps(payload))
+    except OSError:
+        # Disk persistence is a best-effort convenience; never let it break
+        # a successful build.
+        pass
+
+
+def _read_disk_cache(featured: int) -> list["Booster"] | None:
+    if not _CACHE_FILE_PATH.exists():
+        return None
+    try:
+        payload = json.loads(_CACHE_FILE_PATH.read_text())
+    except (OSError, ValueError):
+        return None
+    if payload.get("featured") != featured:
+        return None
+    built_at = payload.get("built_at")
+    if not isinstance(built_at, (int, float)):
+        return None
+    if (time.time() - built_at) >= _CACHE_TTL_SECONDS:
+        return None
+    boosters_data = payload.get("boosters")
+    if not boosters_data:
+        return None
+    try:
+        return [_booster_from_dict(data) for data in boosters_data]
+    except (KeyError, TypeError):
+        return None
 
 
 def _is_hit_slot_rarity(rarity: str) -> bool:
@@ -84,12 +165,21 @@ class StoreService:
             if time.monotonic() < expires_at:
                 return boosters
 
+        disk_boosters = _read_disk_cache(featured)
+        if disk_boosters is not None:
+            # A restart empties the in-process cache; reuse the disk-persisted
+            # result (if still fresh) instead of forcing a slow/rate-limited
+            # cold rebuild on the first request after startup.
+            _cache[featured] = (time.monotonic() + _CACHE_TTL_SECONDS, disk_boosters)
+            return disk_boosters
+
         boosters = self._build_boosters(featured)
         if boosters:
             # Only cache a successful, non-empty result. An empty result usually
             # means the scan window landed on unpriced sets or hit per-set errors;
             # caching that for 6h would keep the store empty until the TTL expires.
             _cache[featured] = (time.monotonic() + _CACHE_TTL_SECONDS, boosters)
+            _write_disk_cache(featured, boosters)
         return boosters
 
     def _build_boosters(self, featured: int) -> list[Booster]:

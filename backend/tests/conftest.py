@@ -4,6 +4,9 @@ import os
 # very first Settings() built during the test session already has the
 # scheduler disabled — no background thread, no network, ever, in tests.
 os.environ["ENABLE_SCHEDULER"] = "0"
+# Same reasoning for the store cache warm-up thread: never spawn it, never
+# touch the network, during tests.
+os.environ["WARM_STORE_ON_STARTUP"] = "0"
 # Keep any real (non-overridden) lifespan/db access confined to memory so
 # tests never write a stray cardfolio.db file to disk.
 os.environ.setdefault("DATABASE_URL", "sqlite://")
@@ -14,8 +17,18 @@ from sqlmodel.pool import StaticPool
 
 from app.config import get_settings
 from app.providers.base import CardResult, PriceResult
+from app.services import store_service as store_service_module
 
 get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_store_disk_cache(tmp_path, monkeypatch):
+    # Every test gets its own throwaway disk-cache path so no test ever
+    # reads or writes the real backend/.store_cache.json file.
+    monkeypatch.setattr(
+        store_service_module, "_CACHE_FILE_PATH", tmp_path / "store_cache.json"
+    )
 
 
 @pytest.fixture

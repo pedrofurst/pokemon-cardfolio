@@ -1,10 +1,19 @@
 import httpx
+import pytest
 import respx
 
 from app.errors import CardNotFoundError, PriceProviderError
 from app.providers.pokemontcgio import PokemonTcgIoProvider
 
 BASE = "https://api.pokemontcg.io/v2"
+
+
+@pytest.fixture(autouse=True)
+def _no_real_retry_sleeps(monkeypatch):
+    # Persistent-failure cases below now go through up to 3 retry attempts
+    # with real backoff; patch it out everywhere in this module so tests
+    # stay fast regardless of whether they exercise the retry path.
+    monkeypatch.setattr("app.providers.pokemontcgio.time.sleep", lambda seconds: None)
 
 CARD_JSON = {
     "id": "base1-4",
@@ -168,3 +177,71 @@ def test_get_set_cards_wraps_transport_error():
     except PriceProviderError:
         raised = True
     assert raised
+
+
+@respx.mock
+def test_list_sets_retries_and_succeeds_after_two_502s():
+    respx.get(f"{BASE}/sets").mock(
+        side_effect=[
+            httpx.Response(502),
+            httpx.Response(502),
+            httpx.Response(200, json={"data": [SET_JSON]}),
+        ]
+    )
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    result = provider.list_sets(limit=12)
+    assert result[0].id == "base1"
+
+
+@respx.mock
+def test_list_sets_raises_price_provider_error_after_exhausting_retries():
+    respx.get(f"{BASE}/sets").mock(
+        side_effect=[
+            httpx.Response(502),
+            httpx.Response(502),
+            httpx.Response(502),
+            httpx.Response(502),
+        ]
+    )
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.list_sets()
+        raised = False
+    except PriceProviderError:
+        raised = True
+    assert raised
+
+
+@respx.mock
+def test_list_sets_retry_sleeps_use_the_expected_backoff(monkeypatch):
+    sleep_calls = []
+    monkeypatch.setattr(
+        "app.providers.pokemontcgio.time.sleep", lambda seconds: sleep_calls.append(seconds)
+    )
+    respx.get(f"{BASE}/sets").mock(
+        side_effect=[
+            httpx.Response(502),
+            httpx.Response(502),
+            httpx.Response(200, json={"data": [SET_JSON]}),
+        ]
+    )
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    provider.list_sets()
+    assert sleep_calls == [0.6, 1.2]
+
+
+@respx.mock
+def test_list_sets_does_not_retry_on_non_429_client_error(monkeypatch):
+    sleep_calls = []
+    monkeypatch.setattr(
+        "app.providers.pokemontcgio.time.sleep", lambda seconds: sleep_calls.append(seconds)
+    )
+    respx.get(f"{BASE}/sets").mock(return_value=httpx.Response(400))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.list_sets()
+        raised = False
+    except PriceProviderError:
+        raised = True
+    assert raised
+    assert sleep_calls == []

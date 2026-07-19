@@ -2,6 +2,7 @@ import pytest
 
 from app.errors import PriceProviderError
 from app.providers.base import CardResult, SetInfo
+from app.services import store_service as store_service_module
 from app.services.store_service import StoreService, clear_store_cache
 
 SET_ALPHA = SetInfo(
@@ -223,3 +224,45 @@ def test_build_does_not_cache_an_empty_result():
     assert boosters == []
     service.build()
     assert provider.list_sets_call_count == 2
+
+
+class RaisingStoreProvider:
+    """A provider that fails the test if it is ever called.
+
+    Used to prove a fresh StoreService instance served a request entirely
+    from the on-disk cache, without touching the (fake) upstream provider.
+    """
+
+    def list_sets(self, limit=12):
+        raise AssertionError("list_sets should not be called when disk cache is fresh")
+
+    def get_set_cards(self, set_id):
+        raise AssertionError("get_set_cards should not be called when disk cache is fresh")
+
+
+def test_build_writes_a_disk_cache_file_on_successful_build():
+    provider = FakeStoreProvider()
+    service = StoreService(provider)
+    service.build()
+    assert store_service_module._CACHE_FILE_PATH.exists()
+
+
+def test_build_reuses_disk_cache_across_fresh_service_instances_without_calling_provider():
+    provider = FakeStoreProvider()
+    StoreService(provider).build()
+
+    # Simulate a backend restart: a brand new StoreService with an empty
+    # in-process cache (module-level _cache still holds the previous
+    # process's entry here in-test, so clear it to model a real restart).
+    store_service_module._cache.clear()
+
+    boosters = StoreService(RaisingStoreProvider()).build()
+    assert [booster.set_id for booster in boosters] == ["set-a"]
+
+
+def test_clear_store_cache_removes_the_disk_cache_file():
+    provider = FakeStoreProvider()
+    StoreService(provider).build()
+    assert store_service_module._CACHE_FILE_PATH.exists()
+    clear_store_cache()
+    assert not store_service_module._CACHE_FILE_PATH.exists()

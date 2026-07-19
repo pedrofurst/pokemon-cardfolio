@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///cardfolio.db"
     enable_scheduler: bool = True
     refresh_interval_hours: int = 24
+    warm_store_on_startup: bool = True
 
 
 @lru_cache

@@ -1,9 +1,52 @@
+import time
+
 import httpx
 
 from app.errors import CardNotFoundError, PriceProviderError
 from app.providers.base import CardResult, PriceResult, SetInfo
 
 BASE_URL = "https://api.pokemontcg.io/v2"
+
+_MAX_ATTEMPTS = 3
+_RETRY_BACKOFF_SECONDS = (0.6, 1.2)
+
+
+def _is_retryable_status(status_code: int) -> bool:
+    return status_code == 429 or status_code >= 500
+
+
+def _get_with_retry(
+    client: httpx.Client,
+    url: str,
+    *,
+    params: dict | None = None,
+    headers: dict | None = None,
+) -> httpx.Response:
+    """GET with a small retry-with-backoff for transient upstream failures.
+
+    Retries on a 429/5xx status or a transport-level error (connect/read
+    timeout). Any other 4xx status is returned immediately without retry.
+    """
+    last_transport_error: httpx.TransportError | None = None
+    last_bad_response: httpx.Response | None = None
+    for attempt in range(_MAX_ATTEMPTS):
+        try:
+            response = client.get(url, params=params, headers=headers)
+        except httpx.TransportError as error:
+            last_transport_error = error
+        else:
+            if not _is_retryable_status(response.status_code):
+                return response
+            last_bad_response = response
+
+        is_last_attempt = attempt == _MAX_ATTEMPTS - 1
+        if not is_last_attempt:
+            time.sleep(_RETRY_BACKOFF_SECONDS[attempt])
+
+    if last_transport_error is not None:
+        raise last_transport_error
+    assert last_bad_response is not None
+    return last_bad_response
 
 
 def _extract_market_price(card: dict) -> float | None:
@@ -68,7 +111,8 @@ class PokemonTcgIoProvider:
 
     def search_cards(self, query: str) -> list[CardResult]:
         try:
-            response = self._client.get(
+            response = _get_with_retry(
+                self._client,
                 f"{BASE_URL}/cards",
                 params={"q": f'name:"{query}*"', "pageSize": 20},
                 headers=self._headers,
@@ -83,8 +127,8 @@ class PokemonTcgIoProvider:
 
     def get_price(self, card_id: str) -> PriceResult:
         try:
-            response = self._client.get(
-                f"{BASE_URL}/cards/{card_id}", headers=self._headers
+            response = _get_with_retry(
+                self._client, f"{BASE_URL}/cards/{card_id}", headers=self._headers
             )
             if response.status_code == 404:
                 raise CardNotFoundError(card_id)
@@ -104,7 +148,8 @@ class PokemonTcgIoProvider:
 
     def list_sets(self, limit: int = 12) -> list[SetInfo]:
         try:
-            response = self._client.get(
+            response = _get_with_retry(
+                self._client,
                 f"{BASE_URL}/sets",
                 params={"orderBy": "-releaseDate", "pageSize": limit},
                 headers=self._headers,
@@ -119,7 +164,8 @@ class PokemonTcgIoProvider:
 
     def get_set_cards(self, set_id: str) -> list[CardResult]:
         try:
-            response = self._client.get(
+            response = _get_with_retry(
+                self._client,
                 f"{BASE_URL}/cards",
                 params={"q": f"set.id:{set_id}", "pageSize": 250},
                 headers=self._headers,
