@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Digest } from "@/lib/types";
-import { direction, money, pct, timeAgo } from "@/lib/format";
+import { direction, pct, timeAgo } from "@/lib/format";
+import { useMoney } from "@/components/Currency";
 import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui";
 import { CountUp } from "@/components/CountUp";
 import { Reveal } from "@/components/Reveal";
@@ -30,6 +31,7 @@ function InsightCard({
 }
 
 export default function TodayPage() {
+  const { fmt } = useMoney();
   const [data, setData] = useState<Digest | null>(null);
   const [loadError, setLoadError] = useState(false);
 
@@ -94,7 +96,7 @@ export default function TodayPage() {
                 <PnLPill value={data.summary.pnl} showPct={data.summary.pnl_pct} onSlab />
               </div>
               <div className="slab__value">
-                <CountUp value={data.summary.total_value} format={money} />
+                <CountUp value={data.summary.total_value} format={fmt} />
               </div>
               <div className="slab__stats">
                 <div className="slab__stat">

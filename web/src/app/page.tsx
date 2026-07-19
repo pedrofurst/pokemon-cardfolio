@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { CollectionResponse, PortfolioPoint, PriceStatus } from "@/lib/types";
-import { money, pct, timeAgo } from "@/lib/format";
+import { pct, timeAgo } from "@/lib/format";
+import { useMoney } from "@/components/Currency";
 import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui";
 import { CountUp } from "@/components/CountUp";
 import { TrendChart } from "@/components/TrendChart";
@@ -17,6 +18,7 @@ type FlashDirection = "up" | "down";
 const FLASH_DURATION_MS = 900;
 
 export default function Home() {
+  const { fmt } = useMoney();
   const [data, setData] = useState<CollectionResponse | null>(null);
   const [portfolioHistory, setPortfolioHistory] = useState<PortfolioPoint[]>([]);
   const [priceStatus, setPriceStatus] = useState<PriceStatus | null>(null);
@@ -169,17 +171,17 @@ export default function Home() {
             <PnLPill value={summary.pnl} showPct={summary.pnl_pct} onSlab />
           </div>
           <div className="slab__value">
-            <CountUp value={summary.total_value} format={money} />
+            <CountUp value={summary.total_value} format={fmt} />
           </div>
           <div className="slab__stats">
             <div className="slab__stat">
               <span className="k">Cost basis</span>
-              <span className="v">{money(summary.total_cost)}</span>
+              <span className="v">{fmt(summary.total_cost)}</span>
             </div>
             <div className="slab__stat">
               <span className="k">Unrealized P&amp;L</span>
               <span className="v">
-                <CountUp value={summary.pnl} format={money} />
+                <CountUp value={summary.pnl} format={fmt} />
               </span>
             </div>
             <div className="slab__stat">
@@ -252,9 +254,9 @@ export default function Home() {
                         <div className="tile__foot">
                           <div className="tile__price">
                             <span className="now">
-                              {item.current_price === null ? "Unpriced" : money(item.current_price)}
+                              {item.current_price === null ? "Unpriced" : fmt(item.current_price)}
                             </span>
-                            <span className="cost">cost {money(item.holding.acquisition_cost)}</span>
+                            <span className="cost">cost {fmt(item.holding.acquisition_cost)}</span>
                           </div>
                           <PnLPill value={item.pnl} />
                         </div>

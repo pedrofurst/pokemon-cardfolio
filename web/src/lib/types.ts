@@ -126,6 +126,37 @@ export interface DigestHolding {
   current_price: number | null;
 }
 
+export interface SetProgress {
+  set_id: string;
+  set_name: string;
+  owned: number;
+  total: number | null;
+  pct: number | null;
+}
+
+export interface AllocationSlice {
+  name?: string;
+  rarity?: string;
+  value: number;
+  pct: number;
+}
+
+export interface TopCard {
+  card_id: string;
+  name: string;
+  value: number;
+}
+
+export interface InsightsResponse {
+  sets: SetProgress[];
+  allocation: {
+    total_value: number;
+    by_set: { name: string; value: number; pct: number }[];
+    by_rarity: { rarity: string; value: number; pct: number }[];
+    top_cards: TopCard[];
+  };
+}
+
 export interface Digest {
   summary: { total_cost: number; total_value: number; pnl: number; pnl_pct: number };
   realized: RealizedSummary;

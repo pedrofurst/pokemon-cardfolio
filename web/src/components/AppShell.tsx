@@ -58,6 +58,12 @@ const icons = {
       <path d="M8.5 9h7M8.5 13h4.5" />
     </svg>
   ),
+  insights: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.5 13.5a8.5 8.5 0 1 1-6-8.1" />
+      <path d="M20.5 13.5H12V5a8.5 8.5 0 0 1 8.5 8.5Z" />
+    </svg>
+  ),
 };
 
 const NAV: NavItem[] = [
@@ -69,6 +75,7 @@ const NAV: NavItem[] = [
   { href: "/opportunities", label: "Opportunities", icon: icons.opportunities, match: (p) => p.startsWith("/opportunities") },
   { href: "/grading", label: "Grading", icon: icons.grading, match: (p) => p.startsWith("/grading") },
   { href: "/sales", label: "Sales", icon: icons.sales, match: (p) => p.startsWith("/sales") },
+  { href: "/insights", label: "Insights", icon: icons.insights, match: (p) => p.startsWith("/insights") },
 ];
 
 function CurrencyToggle() {

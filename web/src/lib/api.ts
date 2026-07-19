@@ -4,6 +4,7 @@ import {
   Digest,
   FxResponse,
   GradingResult,
+  InsightsResponse,
   OpportunitiesResponse,
   PortfolioPoint,
   PriceCheckResult,
@@ -85,4 +86,5 @@ export const api = {
   getSales: () => fetch(`${BASE}/sales`).then(json<SalesResponse>),
   getDigest: () => fetch(`${BASE}/digest`).then(json<Digest>),
   getFx: () => fetch(`${BASE}/fx`).then(json<FxResponse>),
+  getInsights: () => fetch(`${BASE}/insights`).then(json<InsightsResponse>),
 };

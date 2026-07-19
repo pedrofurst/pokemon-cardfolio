@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { SalesResponse } from "@/lib/types";
-import { money } from "@/lib/format";
+import { useMoney } from "@/components/Currency";
 import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui";
 import { Reveal } from "@/components/Reveal";
 
 export default function SalesPage() {
+  const { fmt } = useMoney();
   const [data, setData] = useState<SalesResponse | null>(null);
   const [loadError, setLoadError] = useState(false);
 
@@ -59,11 +60,11 @@ export default function SalesPage() {
                 <div className="ledger">
                   <div className="ledger__row">
                     <span className="ledger__k">Proceeds</span>
-                    <span className="ledger__v">{money(data.summary.total_proceeds)}</span>
+                    <span className="ledger__v">{fmt(data.summary.total_proceeds)}</span>
                   </div>
                   <div className="ledger__row">
                     <span className="ledger__k">Cost basis</span>
-                    <span className="ledger__v">{money(data.summary.total_cost)}</span>
+                    <span className="ledger__v">{fmt(data.summary.total_cost)}</span>
                   </div>
                   <div className="ledger__row">
                     <span className="ledger__k">Sales logged</span>
@@ -107,10 +108,10 @@ export default function SalesPage() {
                             {entry.sale.quantity}
                           </td>
                           <td className="num" style={{ fontFamily: "var(--font-mono)" }}>
-                            {money(entry.sale.sale_price)}
+                            {fmt(entry.sale.sale_price)}
                           </td>
                           <td className="num" style={{ fontFamily: "var(--font-mono)" }}>
-                            {money(proceeds)}
+                            {fmt(proceeds)}
                           </td>
                           <td className="num">
                             <PnLPill value={realized} />

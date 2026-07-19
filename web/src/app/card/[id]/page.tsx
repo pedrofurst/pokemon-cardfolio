@@ -6,7 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { api } from "@/lib/api";
 import { HoldingView, PricePoint } from "@/lib/types";
-import { money } from "@/lib/format";
+import { useMoney } from "@/components/Currency";
 import { ConnectionError, PnLPill } from "@/components/ui";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
@@ -21,6 +21,7 @@ export default function CardDetail() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { toast } = useToast();
+  const { fmt } = useMoney();
   const [view, setView] = useState<HoldingView | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [history, setHistory] = useState<PricePoint[]>([]);
@@ -187,12 +188,12 @@ export default function CardDetail() {
                 <div className="ledger__row">
                   <span className="ledger__k">Current price</span>
                   <span className="ledger__v">
-                    {view.current_price === null ? "Unpriced" : money(view.current_price)}
+                    {view.current_price === null ? "Unpriced" : fmt(view.current_price)}
                   </span>
                 </div>
                 <div className="ledger__row">
                   <span className="ledger__k">Cost basis</span>
-                  <span className="ledger__v">{money(view.holding.acquisition_cost)}</span>
+                  <span className="ledger__v">{fmt(view.holding.acquisition_cost)}</span>
                 </div>
                 <div className="ledger__row is-total">
                   <span className="ledger__k" style={{ color: "var(--ink)", fontWeight: 600 }}>
