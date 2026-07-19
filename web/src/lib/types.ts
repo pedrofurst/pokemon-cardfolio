@@ -6,6 +6,8 @@ export interface CardResult {
   id: string;
   name: string;
   set_name: string;
+  set_id: string;
+  set_total: number | null;
   number: string;
   rarity: string;
   image_url: string;
