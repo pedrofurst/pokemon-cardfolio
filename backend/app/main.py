@@ -11,6 +11,7 @@ from app.db import init_db
 from app.errors import CardNotFoundError, PriceProviderError
 from app.routers import (
     cards,
+    digest,
     grading,
     history,
     holdings,
@@ -63,6 +64,7 @@ def create_application() -> FastAPI:
     application.include_router(history.router)
     application.include_router(price_check.router)
     application.include_router(sales.router)
+    application.include_router(digest.router)
 
     @application.exception_handler(CardNotFoundError)
     def handle_card_not_found(request: Request, error: CardNotFoundError) -> JSONResponse:

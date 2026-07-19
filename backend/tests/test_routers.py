@@ -222,6 +222,21 @@ def test_opportunities_returns_three_keys_with_mover():
     assert body["movers"][0]["card_id"] == "base1-4"
 
 
+def test_digest_returns_summary_and_realized_keys():
+    client = _client()
+    _add_sample_holding(client)
+    response = client.get("/digest")
+    body = response.json()
+    assert set(body.keys()) >= {"summary", "realized", "top_gainer", "top_loser",
+                                 "movers", "deals", "target_hits", "last_refresh"}
+
+
+def test_digest_with_no_holdings_returns_null_top_gainer():
+    client = _client()
+    response = client.get("/digest")
+    assert response.json()["top_gainer"] is None
+
+
 def test_grading_evaluate_with_explicit_raw_price_returns_recommendation():
     client = _client()
     payload = {"raw_price": 50.0, "psa10_price": 300.0, "psa9_price": 120.0}
