@@ -3,7 +3,12 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from app.db import get_session
-from app.deps import get_collection_service, get_opportunity_service, get_price_service
+from app.deps import (
+    get_collection_service,
+    get_grading_service,
+    get_opportunity_service,
+    get_price_service,
+)
 from app.errors import CardNotFoundError, PriceProviderError
 from app.main import create_application
 from app.models import Card, PriceSnapshot
@@ -13,6 +18,7 @@ from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
+from app.services.grading_service import GradingService
 from app.services.opportunity_service import OpportunityService
 from app.services.price_service import PriceService
 
@@ -60,6 +66,7 @@ def _client(price_provider=None):
     app.dependency_overrides[get_collection_service] = collection_override
     app.dependency_overrides[get_price_service] = price_override
     app.dependency_overrides[get_opportunity_service] = opportunity_override
+    app.dependency_overrides[get_grading_service] = lambda: GradingService()
     client = TestClient(app)
     client.test_engine = engine
     return client
@@ -151,3 +158,39 @@ def test_opportunities_returns_three_keys_with_mover():
     body = client.get("/opportunities").json()
     assert set(body.keys()) == {"movers", "deals", "target_hits"}
     assert body["movers"][0]["card_id"] == "base1-4"
+
+
+def test_grading_evaluate_with_explicit_raw_price_returns_recommendation():
+    client = _client()
+    payload = {"raw_price": 50.0, "psa10_price": 300.0, "psa9_price": 120.0}
+    response = client.post("/grading/evaluate", json=payload)
+    assert response.status_code == 200
+    assert "recommendation" in response.json()
+
+
+def test_grading_evaluate_auto_fills_raw_price_from_seeded_snapshot():
+    client = _client()
+    with Session(client.test_engine) as session:
+        card_repo = CardRepository(session)
+        price_repo = PriceRepository(session)
+        card_repo.upsert(Card(id="base1-4", name="Charizard"))
+        price_repo.add(PriceSnapshot(card_id="base1-4", market_price=50.0))
+
+    payload = {"card_id": "base1-4", "raw_price": None, "psa10_price": 300.0}
+    response = client.post("/grading/evaluate", json=payload)
+    body = response.json()
+    assert response.status_code == 200
+    assert body["raw_net"] == 50.0 * (1 - 0.13)
+
+
+def test_grading_evaluate_without_raw_price_or_card_id_returns_400():
+    client = _client()
+    response = client.post("/grading/evaluate", json={})
+    assert response.status_code == 400
+
+
+def test_grading_evaluate_with_out_of_range_prob_psa10_returns_422():
+    client = _client()
+    payload = {"raw_price": 50.0, "psa10_price": 300.0, "prob_psa10": 1.5}
+    response = client.post("/grading/evaluate", json=payload)
+    assert response.status_code == 422

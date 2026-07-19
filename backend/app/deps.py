@@ -9,6 +9,7 @@ from app.repositories.holding_repository import HoldingRepository
 from app.repositories.price_repository import PriceRepository
 from app.repositories.watch_repository import WatchRepository
 from app.services.collection_service import CollectionService
+from app.services.grading_service import GradingService
 from app.services.opportunity_service import OpportunityService
 from app.services.price_service import PriceService
 
@@ -35,3 +36,7 @@ def get_opportunity_service(session: Session = Depends(get_session)) -> Opportun
         CardRepository(session), PriceRepository(session),
         HoldingRepository(session), WatchRepository(session),
     )
+
+
+def get_grading_service() -> GradingService:
+    return GradingService()
