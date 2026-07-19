@@ -9,6 +9,10 @@ function formatNumber(value: number | null): string {
   return value === null ? "—" : value.toFixed(2);
 }
 
+function formatRoiPct(value: number | null): string {
+  return value == null ? "—" : `${value.toFixed(1)}%`;
+}
+
 function recommendationLabel(recommendation: string): string {
   if (recommendation === "GRADE") return "GRADE";
   if (recommendation === "DONT_GRADE") return "DON'T GRADE";
@@ -89,6 +93,9 @@ function GradingForm() {
           Probability of PSA 10
           <input value={probPsa10} onChange={(e) => setProbPsa10(e.target.value)} style={{ display: "block", width: "100%" }} />
         </label>
+        <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
+          Only applied when both PSA 10 and PSA 9 prices are entered.
+        </p>
         <button onClick={evaluate}>Evaluate</button>
       </div>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
@@ -109,9 +116,11 @@ function GradingForm() {
           <p>{result.rationale}</p>
           <ul>
             <li>Raw net: ${formatNumber(result.raw_net)}</li>
+            <li>PSA 10 net: ${formatNumber(result.psa10_net)}</li>
+            <li>PSA 9 net: ${formatNumber(result.psa9_net)}</li>
             <li>Expected graded net: ${formatNumber(result.expected_graded_net)}</li>
             <li>Uplift: ${formatNumber(result.uplift)}</li>
-            <li>ROI: {formatNumber(result.roi_pct)}%</li>
+            <li>ROI: {formatRoiPct(result.roi_pct)}</li>
           </ul>
         </div>
       )}

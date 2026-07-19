@@ -12,9 +12,9 @@ router = APIRouter(prefix="/grading", tags=["grading"])
 
 class GradingRequest(BaseModel):
     card_id: str | None = None
-    raw_price: float | None = None
-    psa10_price: float | None = None
-    psa9_price: float | None = None
+    raw_price: float | None = Field(None, ge=0)
+    psa10_price: float | None = Field(None, ge=0)
+    psa9_price: float | None = Field(None, ge=0)
     grading_cost: float = Field(25.0, ge=0)
     selling_fees_pct: float = Field(13.0, ge=0, lt=100)
     prob_psa10: float = Field(0.5, ge=0, le=1)

@@ -194,3 +194,10 @@ def test_grading_evaluate_with_out_of_range_prob_psa10_returns_422():
     payload = {"raw_price": 50.0, "psa10_price": 300.0, "prob_psa10": 1.5}
     response = client.post("/grading/evaluate", json=payload)
     assert response.status_code == 422
+
+
+def test_grading_evaluate_with_negative_psa10_price_returns_422():
+    client = _client()
+    payload = {"raw_price": 50.0, "psa10_price": -300.0}
+    response = client.post("/grading/evaluate", json=payload)
+    assert response.status_code == 422

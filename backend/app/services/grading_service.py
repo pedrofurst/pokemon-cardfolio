@@ -40,6 +40,9 @@ class GradingService:
         )
 
         recommendation, rationale = self._recommend(raw_net, expected_graded_net, uplift)
+        rationale = self._append_single_grade_caveat(
+            recommendation, rationale, data.psa10_price, data.psa9_price,
+        )
 
         return GradingResult(
             raw_net=raw_net,
@@ -84,3 +87,19 @@ class GradingService:
             "grading not worth the cost"
         )
         return "DONT_GRADE", rationale
+
+    def _append_single_grade_caveat(
+        self,
+        recommendation: str,
+        rationale: str,
+        psa10_price: float | None,
+        psa9_price: float | None,
+    ) -> str:
+        is_single_grade_branch = (psa10_price is not None) != (psa9_price is not None)
+        if not is_single_grade_branch or recommendation not in ("GRADE", "DONT_GRADE"):
+            return rationale
+        assumed_grade = "10" if psa10_price is not None else "9"
+        return (
+            f"{rationale} (Assumes a guaranteed PSA {assumed_grade} outcome — enter both "
+            "PSA 10 and PSA 9 prices to weight by grade probability.)"
+        )
