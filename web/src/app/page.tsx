@@ -1,66 +1,56 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { CollectionResponse } from "@/lib/types";
 
 export default function Home() {
+  const [data, setData] = useState<CollectionResponse | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      setData(await api.listHoldings());
+    }
+    load();
+  }, []);
+
+  async function refresh() {
+    await api.refreshPrices();
+    setData(await api.listHoldings());
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
+    <main style={{ padding: 24 }}>
+      <h1>My collection</h1>
+      <Link href="/search">+ Add cards</Link>
+      <button onClick={refresh} style={{ marginLeft: 12 }}>Refresh prices</button>
+      {data && (
+        <>
           <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+            Cost ${data.summary.total_cost.toFixed(2)} · Value $
+            {data.summary.total_value.toFixed(2)} · P&amp;L ${data.summary.pnl.toFixed(2)} (
+            {data.summary.pnl_pct.toFixed(1)}%)
           </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          <table>
+            <tbody>
+              {data.items.map((item) => (
+                <tr key={item.holding.id}>
+                  <td>
+                    <Link href={`/card/${item.holding.card_id}`}>
+                      {item.card?.name ?? item.holding.card_id}
+                    </Link>
+                  </td>
+                  <td>{item.holding.condition}</td>
+                  <td>${item.holding.acquisition_cost.toFixed(2)}</td>
+                  <td>${item.current_price?.toFixed(2) ?? "?"}</td>
+                  <td>${item.pnl.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </main>
   );
 }
