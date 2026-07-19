@@ -1,9 +1,11 @@
 import dataclasses
 import json
+import re
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 
 from app.errors import PriceProviderError
 from app.providers.base import CardResult, SetInfo, StoreProvider
@@ -28,6 +30,7 @@ class ChaseCard:
     price: float | None
     rarity: str
     buy_url: str
+    buy_url_br: str
 
 
 @dataclass
@@ -141,6 +144,21 @@ def _ebay_search(query: str) -> str:
     return f"https://www.ebay.com/sch/i.html?_nkw={quote_plus(query)}"
 
 
+def _slugify(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", text)
+    ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_only.lower())
+    return slug.strip("-")
+
+
+def _mercadolivre_search(query: str) -> str:
+    return f"https://lista.mercadolivre.com.br/{_slugify(query)}"
+
+
+def _liga_search(query: str) -> str:
+    return f"https://www.ligapokemon.com.br/?view=cards/search&card={quote(query)}"
+
+
 def _buy_url_for(card: CardResult) -> str:
     if card.tcgplayer_id and card.tcgplayer_id.startswith("http"):
         return card.tcgplayer_id
@@ -151,6 +169,7 @@ def _to_chase_card(card: CardResult) -> ChaseCard:
     return ChaseCard(
         id=card.id, name=card.name, image_url=card.image_url,
         price=card.market_price, rarity=card.rarity, buy_url=_buy_url_for(card),
+        buy_url_br=_liga_search(card.name),
     )
 
 
@@ -238,5 +257,7 @@ class StoreService:
             booster_links={
                 "tcgplayer": _tcgplayer_search(f"{set_info.name} booster"),
                 "ebay": _ebay_search(f"{set_info.name} booster box"),
+                "mercadolivre": _mercadolivre_search(f"pokemon booster box {set_info.name}"),
+                "liga": _liga_search(set_info.name),
             },
         )

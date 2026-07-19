@@ -167,6 +167,7 @@ export interface ChaseCard {
   price: number | null;
   rarity: string;
   buy_url: string;
+  buy_url_br: string;
 }
 
 export interface Booster {
@@ -182,7 +183,7 @@ export interface Booster {
   est_hit_pct: number | null;
   one_in: number | null;
   top_chase_value: number | null;
-  booster_links: { tcgplayer: string; ebay: string };
+  booster_links: { tcgplayer: string; ebay: string; mercadolivre: string; liga: string };
 }
 
 export interface StoreResponse {

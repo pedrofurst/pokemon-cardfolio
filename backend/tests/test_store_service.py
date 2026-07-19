@@ -3,7 +3,7 @@ import pytest
 from app.errors import PriceProviderError
 from app.providers.base import CardResult, SetInfo
 from app.services import store_service as store_service_module
-from app.services.store_service import StoreService, clear_store_cache
+from app.services.store_service import StoreService, _slugify, clear_store_cache
 
 SET_ALPHA = SetInfo(
     id="set-a", name="Set Alpha", series="Alpha", total=100,
@@ -157,6 +157,51 @@ def test_booster_links_ebay_contains_url_encoded_set_name():
     service = StoreService(FakeStoreProvider())
     booster = service.build()[0]
     assert "Set+Alpha" in booster.booster_links["ebay"]
+
+
+def test_booster_links_mercadolivre_contains_ml_domain():
+    service = StoreService(FakeStoreProvider())
+    booster = service.build()[0]
+    assert "mercadolivre.com.br" in booster.booster_links["mercadolivre"]
+
+
+def test_booster_links_mercadolivre_contains_slugified_set_name():
+    service = StoreService(FakeStoreProvider())
+    booster = service.build()[0]
+    assert "pokemon-booster-box-set-alpha" in booster.booster_links["mercadolivre"]
+
+
+def test_booster_links_liga_contains_liga_domain():
+    service = StoreService(FakeStoreProvider())
+    booster = service.build()[0]
+    assert "ligapokemon.com.br" in booster.booster_links["liga"]
+
+
+def test_booster_links_liga_contains_url_encoded_set_name():
+    service = StoreService(FakeStoreProvider())
+    booster = service.build()[0]
+    assert "Set%20Alpha" in booster.booster_links["liga"]
+
+
+def test_chase_card_buy_url_br_contains_liga_domain():
+    service = StoreService(FakeStoreProvider())
+    booster = service.build()[0]
+    assert "ligapokemon.com.br" in booster.chase_cards[0].buy_url_br
+
+
+def test_chase_card_buy_url_br_contains_url_encoded_card_name():
+    service = StoreService(FakeStoreProvider())
+    booster = service.build()[0]
+    top_card = booster.chase_cards[0]
+    assert "Alpha%20One" in top_card.buy_url_br
+
+
+def test_slugify_strips_accents_and_lowercases():
+    assert _slugify("Pokémon Rumble") == "pokemon-rumble"
+
+
+def test_slugify_hyphenates_multi_word_query():
+    assert _slugify("pokemon booster box Phantasmal Flames") == "pokemon-booster-box-phantasmal-flames"
 
 
 def test_build_uses_cache_on_second_call():

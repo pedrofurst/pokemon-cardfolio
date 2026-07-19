@@ -66,23 +66,49 @@ function BoosterPanel({ booster, index }: { booster: Booster; index: number }) {
           </div>
         )}
 
-        <div className="row wrap booster__actions">
-          <a
-            href={booster.booster_links.tcgplayer}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn--primary"
-          >
-            TCGplayer
-          </a>
-          <a
-            href={booster.booster_links.ebay}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn"
-          >
-            eBay
-          </a>
+        <div className="booster__actions">
+          <div className="booster__action-group">
+            <span className="booster__action-label">Global</span>
+            <div className="row wrap">
+              <a
+                href={booster.booster_links.tcgplayer}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--primary"
+              >
+                TCGplayer
+              </a>
+              <a
+                href={booster.booster_links.ebay}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn"
+              >
+                eBay
+              </a>
+            </div>
+          </div>
+          <div className="booster__action-group">
+            <span className="booster__action-label">🇧🇷 Brasil</span>
+            <div className="row wrap">
+              <a
+                href={booster.booster_links.mercadolivre}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--sm"
+              >
+                Mercado Livre
+              </a>
+              <a
+                href={booster.booster_links.liga}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--sm"
+              >
+                Liga Pokémon
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </Reveal>
