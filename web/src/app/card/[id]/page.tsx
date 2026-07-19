@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { HoldingView, PricePoint } from "@/lib/types";
@@ -9,13 +9,22 @@ import { money } from "@/lib/format";
 import { ConnectionError, PnLPill } from "@/components/ui";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
+import { useToast } from "@/components/Toast";
 
 export default function CardDetail() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const { toast } = useToast();
   const [view, setView] = useState<HoldingView | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [history, setHistory] = useState<PricePoint[]>([]);
   const [loadError, setLoadError] = useState(false);
+  const [selling, setSelling] = useState(false);
+  const [saleQuantity, setSaleQuantity] = useState("1");
+  const [salePrice, setSalePrice] = useState("");
+  const [saleFee, setSaleFee] = useState("0");
+  const [saleError, setSaleError] = useState<string | null>(null);
+  const [submittingSale, setSubmittingSale] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -80,6 +89,50 @@ export default function CardDetail() {
   }
 
   const gain = view.pnl > 0;
+
+  function openSellModal() {
+    setSaleQuantity("1");
+    setSalePrice(view!.current_price !== null ? String(view!.current_price) : "");
+    setSaleFee("0");
+    setSaleError(null);
+    setSelling(true);
+  }
+
+  async function submitSale() {
+    const holding = view!.holding;
+    const quantity = Number(saleQuantity);
+    const price = Number(salePrice);
+    const fee = Number(saleFee);
+
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > holding.quantity) {
+      setSaleError(`Quantity must be between 1 and ${holding.quantity}.`);
+      toast("Couldn't log the sale", "error");
+      return;
+    }
+    if (Number.isNaN(price) || price < 0) {
+      setSaleError("Enter a valid sale price.");
+      toast("Couldn't log the sale", "error");
+      return;
+    }
+    if (Number.isNaN(fee) || fee < 0) {
+      setSaleError("Enter a valid fee.");
+      toast("Couldn't log the sale", "error");
+      return;
+    }
+
+    setSaleError(null);
+    setSubmittingSale(true);
+    try {
+      await api.sellHolding(holding.id, { quantity, sale_price: price, fee });
+      toast("Sale logged");
+      router.push("/sales");
+    } catch {
+      setSaleError("Couldn't log the sale. Check the backend is running and try again.");
+      toast("Couldn't log the sale", "error");
+    } finally {
+      setSubmittingSale(false);
+    }
+  }
 
   return (
     <div className="container">
@@ -151,9 +204,70 @@ export default function CardDetail() {
             <Link href="/search" className="btn">
               Add another
             </Link>
+            <button className="btn" onClick={openSellModal}>
+              Log a sale
+            </button>
           </div>
         </div>
       </div>
+
+      {selling && (
+        <div className="modal-scrim" onClick={() => setSelling(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__head">
+              <div>
+                <div className="eyebrow">Log a sale</div>
+                <div className="modal__title">{view.card?.name ?? params.id}</div>
+                <div className="tile__set">{view.card?.set_name}</div>
+              </div>
+              {view.card?.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="modal__thumb" src={view.card.image_url} alt={view.card.name} />
+              )}
+            </div>
+            <label className="field">
+              <span className="label">Quantity sold</span>
+              <input
+                className="input num"
+                inputMode="numeric"
+                value={saleQuantity}
+                onChange={(e) => setSaleQuantity(e.target.value)}
+                autoFocus
+              />
+              <span className="hint">You have {view.holding.quantity} on hand.</span>
+            </label>
+            <label className="field">
+              <span className="label">Sale price (USD, per card)</span>
+              <input
+                className="input num"
+                inputMode="decimal"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="0.00"
+              />
+            </label>
+            <label className="field">
+              <span className="label">Fee (USD)</span>
+              <input
+                className="input num"
+                inputMode="decimal"
+                value={saleFee}
+                onChange={(e) => setSaleFee(e.target.value)}
+                placeholder="0.00"
+              />
+            </label>
+            {saleError && <p className="alert">{saleError}</p>}
+            <div className="row" style={{ justifyContent: "flex-end", marginTop: 4 }}>
+              <button className="btn btn--ghost" onClick={() => setSelling(false)}>
+                Cancel
+              </button>
+              <button className="btn btn--primary" onClick={submitSale} disabled={submittingSale}>
+                {submittingSale ? "Logging…" : "Log sale"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

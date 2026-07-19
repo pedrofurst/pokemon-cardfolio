@@ -7,6 +7,8 @@ import {
   PriceCheckResult,
   PricePoint,
   PriceStatus,
+  Sale,
+  SalesResponse,
   WatchEntry,
 } from "./types";
 
@@ -72,4 +74,11 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(json<PriceCheckResult>),
   getPriceStatus: () => fetch(`${BASE}/prices/status`).then(json<PriceStatus>),
+  sellHolding: (holdingId: string, payload: Record<string, unknown>) =>
+    fetch(`${BASE}/holdings/${holdingId}/sell`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(json<Sale>),
+  getSales: () => fetch(`${BASE}/sales`).then(json<SalesResponse>),
 };

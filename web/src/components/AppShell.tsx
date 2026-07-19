@@ -45,6 +45,12 @@ const icons = {
       <circle cx="14.5" cy="8.5" r="1.5" />
     </svg>
   ),
+  sales: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 3h14v17l-3.5-2-3.5 2-3.5-2L5 20V3Z" />
+      <path d="M8.5 9h7M8.5 13h4.5" />
+    </svg>
+  ),
 };
 
 const NAV: NavItem[] = [
@@ -54,6 +60,7 @@ const NAV: NavItem[] = [
   { href: "/watchlist", label: "Watchlist", icon: icons.watchlist, match: (p) => p.startsWith("/watchlist") },
   { href: "/opportunities", label: "Opportunities", icon: icons.opportunities, match: (p) => p.startsWith("/opportunities") },
   { href: "/grading", label: "Grading", icon: icons.grading, match: (p) => p.startsWith("/grading") },
+  { href: "/sales", label: "Sales", icon: icons.sales, match: (p) => p.startsWith("/sales") },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

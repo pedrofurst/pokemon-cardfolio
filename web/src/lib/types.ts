@@ -87,3 +87,30 @@ export interface PriceCheckResult {
 export interface PriceStatus {
   last_refresh: string | null;
 }
+
+export interface Sale {
+  id: string;
+  card_id: string;
+  quantity: number;
+  sale_price: number;
+  fee: number;
+  cost_basis: number;
+  sold_at: string;
+}
+
+export interface SaleEntry {
+  sale: Sale;
+  card: { id: string; name: string; set_name: string; image_url: string } | null;
+}
+
+export interface RealizedSummary {
+  total_proceeds: number;
+  total_cost: number;
+  realized_pnl: number;
+  sales_count: number;
+}
+
+export interface SalesResponse {
+  summary: RealizedSummary;
+  items: SaleEntry[];
+}
