@@ -30,7 +30,9 @@ export const api = {
     }).then(json<unknown>),
   listHoldings: () => fetch(`${BASE}/holdings`).then(json<CollectionResponse>),
   refreshPrices: () =>
-    fetch(`${BASE}/prices/refresh`, { method: "POST" }).then(json<{ written: number }>),
+    fetch(`${BASE}/prices/refresh`, { method: "POST" }).then(
+      json<{ written: number; failed: number }>
+    ),
   listOpportunities: (moverPct?: number, dealPct?: number) => {
     const params = new URLSearchParams();
     if (moverPct !== undefined) {

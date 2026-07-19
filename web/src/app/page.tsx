@@ -3,17 +3,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { CollectionResponse } from "@/lib/types";
-import { money, pct } from "@/lib/format";
+import { CollectionResponse, PortfolioPoint, PriceStatus } from "@/lib/types";
+import { money, pct, timeAgo } from "@/lib/format";
 import { EmptyState, PageHead, PnLPill } from "@/components/ui";
+import { CountUp } from "@/components/CountUp";
+import { TrendChart } from "@/components/TrendChart";
+import { Reveal } from "@/components/Reveal";
 
 export default function Home() {
   const [data, setData] = useState<CollectionResponse | null>(null);
+  const [portfolioHistory, setPortfolioHistory] = useState<PortfolioPoint[]>([]);
+  const [priceStatus, setPriceStatus] = useState<PriceStatus | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshFailed, setLastRefreshFailed] = useState(0);
 
   useEffect(() => {
     async function load() {
-      setData(await api.listHoldings());
+      const [holdings, history, status] = await Promise.all([
+        api.listHoldings(),
+        api.getPortfolioHistory(),
+        api.getPriceStatus(),
+      ]);
+      setData(holdings);
+      setPortfolioHistory(history);
+      setPriceStatus(status);
     }
     load();
   }, []);
@@ -21,8 +34,16 @@ export default function Home() {
   async function refresh() {
     setRefreshing(true);
     try {
-      await api.refreshPrices();
-      setData(await api.listHoldings());
+      const result = await api.refreshPrices();
+      setLastRefreshFailed(result.failed);
+      const [holdings, history, status] = await Promise.all([
+        api.listHoldings(),
+        api.getPortfolioHistory(),
+        api.getPriceStatus(),
+      ]);
+      setData(holdings);
+      setPortfolioHistory(history);
+      setPriceStatus(status);
     } finally {
       setRefreshing(false);
     }
@@ -44,12 +65,28 @@ export default function Home() {
               </svg>
               Add cards
             </Link>
-            <button className="btn btn--primary" onClick={refresh} disabled={refreshing}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5" />
-              </svg>
-              {refreshing ? "Refreshing…" : "Refresh prices"}
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <button className="btn btn--primary" onClick={refresh} disabled={refreshing}>
+                <svg
+                  className={refreshing ? "spin" : undefined}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5" />
+                </svg>
+                {refreshing ? "Refreshing…" : "Refresh prices"}
+              </button>
+              {priceStatus?.last_refresh && (
+                <span style={{ color: "var(--muted)", fontSize: 12 }}>
+                  Updated {timeAgo(priceStatus.last_refresh)}
+                  {lastRefreshFailed > 0 ? ` · ${lastRefreshFailed} couldn't be priced` : ""}
+                </span>
+              )}
+            </div>
           </>
         }
       />
@@ -60,7 +97,9 @@ export default function Home() {
             <span className="slab__label">Total value</span>
             <PnLPill value={summary.pnl} showPct={summary.pnl_pct} onSlab />
           </div>
-          <div className="slab__value">{money(summary.total_value)}</div>
+          <div className="slab__value">
+            <CountUp value={summary.total_value} format={money} />
+          </div>
           <div className="slab__stats">
             <div className="slab__stat">
               <span className="k">Cost basis</span>
@@ -68,7 +107,9 @@ export default function Home() {
             </div>
             <div className="slab__stat">
               <span className="k">Unrealized P&amp;L</span>
-              <span className="v">{money(summary.pnl)}</span>
+              <span className="v">
+                <CountUp value={summary.pnl} format={money} />
+              </span>
             </div>
             <div className="slab__stat">
               <span className="k">Return</span>
@@ -78,6 +119,14 @@ export default function Home() {
               <span className="k">Cards</span>
               <span className="v">{items.length}</span>
             </div>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <TrendChart
+              points={portfolioHistory.map((point) => ({ t: point.fetched_at, v: point.total_value }))}
+              accent="var(--brand)"
+              height={72}
+              ariaLabel="Portfolio value over time"
+            />
           </div>
         </section>
       )}
@@ -101,42 +150,43 @@ export default function Home() {
           </EmptyState>
         ) : (
           <div className="card-grid">
-            {items.map((item) => {
+            {items.map((item, index) => {
               const gain = item.pnl > 0;
               return (
-                <Link
-                  key={item.holding.id}
-                  href={`/card/${item.holding.card_id}`}
-                  className={`tile${gain ? " tile--gain" : ""}`}
-                >
-                  <div className="tile__art">
-                    {item.card?.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.card.image_url} alt={item.card?.name ?? "Card"} />
-                    ) : (
-                      <span className="tile__art--empty">No image</span>
-                    )}
-                    <span className="tile__sheen" aria-hidden />
-                  </div>
-                  <div className="tile__body">
-                    <div>
-                      <div className="tile__name">{item.card?.name ?? item.holding.card_id}</div>
-                      <div className="tile__set">
-                        {item.card?.set_name || "—"} · {item.holding.condition}
-                        {item.holding.quantity > 1 ? ` · ×${item.holding.quantity}` : ""}
+                <Reveal key={item.holding.id} index={index}>
+                  <Link
+                    href={`/card/${item.holding.card_id}`}
+                    className={`tile${gain ? " tile--gain" : ""}`}
+                  >
+                    <div className="tile__art">
+                      {item.card?.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.card.image_url} alt={item.card?.name ?? "Card"} />
+                      ) : (
+                        <span className="tile__art--empty">No image</span>
+                      )}
+                      <span className="tile__sheen" aria-hidden />
+                    </div>
+                    <div className="tile__body">
+                      <div>
+                        <div className="tile__name">{item.card?.name ?? item.holding.card_id}</div>
+                        <div className="tile__set">
+                          {item.card?.set_name || "—"} · {item.holding.condition}
+                          {item.holding.quantity > 1 ? ` · ×${item.holding.quantity}` : ""}
+                        </div>
+                      </div>
+                      <div className="tile__foot">
+                        <div className="tile__price">
+                          <span className="now">
+                            {item.current_price === null ? "Unpriced" : money(item.current_price)}
+                          </span>
+                          <span className="cost">cost {money(item.holding.acquisition_cost)}</span>
+                        </div>
+                        <PnLPill value={item.pnl} />
                       </div>
                     </div>
-                    <div className="tile__foot">
-                      <div className="tile__price">
-                        <span className="now">
-                          {item.current_price === null ? "Unpriced" : money(item.current_price)}
-                        </span>
-                        <span className="cost">cost {money(item.holding.acquisition_cost)}</span>
-                      </div>
-                      <PnLPill value={item.pnl} />
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
+                </Reveal>
               );
             })}
           </div>

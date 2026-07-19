@@ -4,20 +4,24 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { HoldingView } from "@/lib/types";
+import { HoldingView, PricePoint } from "@/lib/types";
 import { money } from "@/lib/format";
 import { PnLPill } from "@/components/ui";
+import { TrendChart } from "@/components/TrendChart";
+import { Reveal } from "@/components/Reveal";
 
 export default function CardDetail() {
   const params = useParams<{ id: string }>();
   const [view, setView] = useState<HoldingView | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [history, setHistory] = useState<PricePoint[]>([]);
 
   useEffect(() => {
     api.listHoldings().then((data) => {
       setView(data.items.find((i) => i.holding.card_id === params.id) ?? null);
       setLoaded(true);
     });
+    api.getCardHistory(params.id).then(setHistory);
   }, [params.id]);
 
   const backLink = (
@@ -57,17 +61,19 @@ export default function CardDetail() {
     <div className="container">
       {backLink}
       <div className="grid-2">
-        <div className={`tile${gain ? " tile--gain" : ""}`} style={{ maxWidth: 340 }}>
-          <div className="tile__art">
-            {view.card?.image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={view.card.image_url} alt={view.card?.name ?? "Card"} />
-            ) : (
-              <span className="tile__art--empty">No image</span>
-            )}
-            <span className="tile__sheen" aria-hidden />
+        <Reveal index={0}>
+          <div className={`tile${gain ? " tile--gain" : ""}`} style={{ maxWidth: 340 }}>
+            <div className="tile__art">
+              {view.card?.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={view.card.image_url} alt={view.card?.name ?? "Card"} />
+              ) : (
+                <span className="tile__art--empty">No image</span>
+              )}
+              <span className="tile__sheen" aria-hidden />
+            </div>
           </div>
-        </div>
+        </Reveal>
 
         <div className="stack">
           <div>
@@ -80,26 +86,39 @@ export default function CardDetail() {
             </div>
           </div>
 
-          <div className="panel panel--pad">
-            <div className="ledger">
-              <div className="ledger__row">
-                <span className="ledger__k">Current price</span>
-                <span className="ledger__v">
-                  {view.current_price === null ? "Unpriced" : money(view.current_price)}
-                </span>
-              </div>
-              <div className="ledger__row">
-                <span className="ledger__k">Cost basis</span>
-                <span className="ledger__v">{money(view.holding.acquisition_cost)}</span>
-              </div>
-              <div className="ledger__row is-total">
-                <span className="ledger__k" style={{ color: "var(--ink)", fontWeight: 600 }}>
-                  Unrealized P&amp;L
-                </span>
-                <PnLPill value={view.pnl} />
+          <Reveal index={1}>
+            <div className="panel panel--pad">
+              <TrendChart
+                points={history.map((point) => ({ t: point.fetched_at, v: point.market_price }))}
+                accent="var(--brand)"
+                height={96}
+                ariaLabel="Price history"
+              />
+            </div>
+          </Reveal>
+
+          <Reveal index={2}>
+            <div className="panel panel--pad">
+              <div className="ledger">
+                <div className="ledger__row">
+                  <span className="ledger__k">Current price</span>
+                  <span className="ledger__v">
+                    {view.current_price === null ? "Unpriced" : money(view.current_price)}
+                  </span>
+                </div>
+                <div className="ledger__row">
+                  <span className="ledger__k">Cost basis</span>
+                  <span className="ledger__v">{money(view.holding.acquisition_cost)}</span>
+                </div>
+                <div className="ledger__row is-total">
+                  <span className="ledger__k" style={{ color: "var(--ink)", fontWeight: 600 }}>
+                    Unrealized P&amp;L
+                  </span>
+                  <PnLPill value={view.pnl} />
+                </div>
               </div>
             </div>
-          </div>
+          </Reveal>
 
           <div className="row wrap">
             <Link href={`/grading?card_id=${view.holding.card_id}`} className="btn btn--primary">
