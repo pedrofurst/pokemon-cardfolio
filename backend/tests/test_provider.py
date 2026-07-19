@@ -101,3 +101,70 @@ def test_provider_wraps_transport_error():
     except PriceProviderError:
         raised = True
     assert raised
+
+
+SET_JSON = {
+    "id": "base1",
+    "name": "Base",
+    "series": "Base",
+    "total": 102,
+    "releaseDate": "1999/01/09",
+    "images": {"symbol": "https://img/base-symbol.png", "logo": "https://img/base-logo.png"},
+}
+
+
+@respx.mock
+def test_list_sets_maps_fields():
+    respx.get(f"{BASE}/sets").mock(return_value=httpx.Response(200, json={"data": [SET_JSON]}))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    result = provider.list_sets(limit=12)[0]
+    assert result.id == "base1"
+    assert result.name == "Base"
+    assert result.series == "Base"
+    assert result.total == 102
+    assert result.release_date == "1999/01/09"
+    assert result.logo_url == "https://img/base-logo.png"
+
+
+@respx.mock
+def test_list_sets_wraps_transport_error():
+    respx.get(f"{BASE}/sets").mock(side_effect=httpx.ConnectError("boom"))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.list_sets()
+        raised = False
+    except PriceProviderError:
+        raised = True
+    assert raised
+
+
+@respx.mock
+def test_list_sets_malformed_json_raises_price_provider_error():
+    respx.get(f"{BASE}/sets").mock(return_value=httpx.Response(200, text="not json"))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.list_sets()
+        raised = False
+    except PriceProviderError:
+        raised = True
+    assert raised
+
+
+@respx.mock
+def test_get_set_cards_returns_mapped_card_results():
+    respx.get(f"{BASE}/cards").mock(return_value=httpx.Response(200, json={"data": [CARD_JSON]}))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    result = provider.get_set_cards("base1")[0]
+    assert result.id == "base1-4"
+
+
+@respx.mock
+def test_get_set_cards_wraps_transport_error():
+    respx.get(f"{BASE}/cards").mock(side_effect=httpx.ConnectError("boom"))
+    provider = PokemonTcgIoProvider(api_key="k", client=httpx.Client())
+    try:
+        provider.get_set_cards("base1")
+        raised = False
+    except PriceProviderError:
+        raised = True
+    assert raised

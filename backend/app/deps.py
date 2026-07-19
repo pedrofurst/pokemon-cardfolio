@@ -19,6 +19,7 @@ from app.services.opportunity_service import OpportunityService
 from app.services.price_check_service import PriceCheckService
 from app.services.price_service import PriceService
 from app.services.sale_service import SaleService
+from app.services.store_service import StoreService
 
 # Single long-lived provider (and its underlying httpx.Client) reused across
 # requests instead of constructing a new client per request.
@@ -77,6 +78,10 @@ def get_sale_service(session: Session = Depends(get_session)) -> SaleService:
     return SaleService(
         HoldingRepository(session), SaleRepository(session), CardRepository(session),
     )
+
+
+def get_store_service() -> StoreService:
+    return StoreService(_provider)
 
 
 def get_digest_service(session: Session = Depends(get_session)) -> DigestService:

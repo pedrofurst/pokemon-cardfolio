@@ -17,6 +17,16 @@ class CardResult:
 
 
 @dataclass
+class SetInfo:
+    id: str
+    name: str
+    series: str
+    total: int | None
+    release_date: str
+    logo_url: str
+
+
+@dataclass
 class PriceResult:
     card_id: str
     market_price: float
@@ -31,3 +41,8 @@ class PriceResult:
 class PriceProvider(Protocol):
     def search_cards(self, query: str) -> list[CardResult]: ...
     def get_price(self, card_id: str) -> PriceResult: ...
+
+
+class StoreProvider(Protocol):
+    def list_sets(self, limit: int = 12) -> list[SetInfo]: ...
+    def get_set_cards(self, set_id: str) -> list[CardResult]: ...

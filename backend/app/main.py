@@ -21,6 +21,7 @@ from app.routers import (
     price_check,
     prices,
     sales,
+    store,
     watchlist,
 )
 
@@ -69,6 +70,7 @@ def create_application() -> FastAPI:
     application.include_router(digest.router)
     application.include_router(insights.router)
     application.include_router(fx.router)
+    application.include_router(store.router)
 
     @application.exception_handler(CardNotFoundError)
     def handle_card_not_found(request: Request, error: CardNotFoundError) -> JSONResponse:

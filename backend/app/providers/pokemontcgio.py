@@ -1,7 +1,7 @@
 import httpx
 
 from app.errors import CardNotFoundError, PriceProviderError
-from app.providers.base import CardResult, PriceResult
+from app.providers.base import CardResult, PriceResult, SetInfo
 
 BASE_URL = "https://api.pokemontcg.io/v2"
 
@@ -32,6 +32,17 @@ def _extract_prices(card: dict) -> dict:
 
 def _to_optional_float(value: float | int | None) -> float | None:
     return float(value) if value is not None else None
+
+
+def _to_set_info(set_data: dict) -> SetInfo:
+    return SetInfo(
+        id=set_data.get("id", ""),
+        name=set_data.get("name", ""),
+        series=set_data.get("series", ""),
+        total=set_data.get("total"),
+        release_date=set_data.get("releaseDate", ""),
+        logo_url=(set_data.get("images") or {}).get("logo", ""),
+    )
 
 
 def _to_card_result(card: dict) -> CardResult:
@@ -90,3 +101,33 @@ class PokemonTcgIoProvider:
             card_id=card_id, market_price=prices["market"], currency="USD", source="tcgplayer",
             low=prices["low"], mid=prices["mid"], high=prices["high"], direct_low=prices["direct_low"],
         )
+
+    def list_sets(self, limit: int = 12) -> list[SetInfo]:
+        try:
+            response = self._client.get(
+                f"{BASE_URL}/sets",
+                params={"orderBy": "-releaseDate", "pageSize": limit},
+                headers=self._headers,
+            )
+            response.raise_for_status()
+            sets = response.json().get("data", [])
+        except httpx.HTTPError as error:
+            raise PriceProviderError("list_sets failed") from error
+        except ValueError as error:
+            raise PriceProviderError("list_sets failed") from error
+        return [_to_set_info(set_data) for set_data in sets]
+
+    def get_set_cards(self, set_id: str) -> list[CardResult]:
+        try:
+            response = self._client.get(
+                f"{BASE_URL}/cards",
+                params={"q": f"set.id:{set_id}", "pageSize": 250},
+                headers=self._headers,
+            )
+            response.raise_for_status()
+            cards = response.json().get("data", [])
+        except httpx.HTTPError as error:
+            raise PriceProviderError(f"get_set_cards failed for {set_id!r}") from error
+        except ValueError as error:
+            raise PriceProviderError(f"get_set_cards failed for {set_id!r}") from error
+        return [_to_card_result(card) for card in cards]
