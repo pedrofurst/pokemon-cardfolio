@@ -160,6 +160,35 @@ export interface InsightsResponse {
   };
 }
 
+export interface ChaseCard {
+  id: string;
+  name: string;
+  image_url: string;
+  price: number | null;
+  rarity: string;
+  buy_url: string;
+}
+
+export interface Booster {
+  set_id: string;
+  set_name: string;
+  series: string;
+  release_date: string;
+  logo_url: string;
+  total: number | null;
+  chase_cards: ChaseCard[];
+  good_count: number;
+  hit_pool: number;
+  est_hit_pct: number | null;
+  one_in: number | null;
+  top_chase_value: number | null;
+  booster_links: { tcgplayer: string; ebay: string };
+}
+
+export interface StoreResponse {
+  boosters: Booster[];
+}
+
 export interface Digest {
   summary: { total_cost: number; total_value: number; pnl: number; pnl_pct: number };
   realized: RealizedSummary;

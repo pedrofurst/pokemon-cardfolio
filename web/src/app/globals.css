@@ -1944,3 +1944,131 @@ a.tile:hover,
     opacity: 0;
   }
 }
+
+/* ---------- Store (Phase 8) ---------- */
+.disclaimer {
+  margin-bottom: 20px;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.booster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.booster__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.booster__logo {
+  max-width: 140px;
+  object-fit: contain;
+}
+
+.booster__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.booster__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.booster__date {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.odds-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--gold-bg);
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.odds-row--unknown {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.odds-row__sep {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.chase-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+}
+
+.chase-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  width: 96px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.chase-card:hover {
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+
+.chase-card__image {
+  width: 72px;
+  height: auto;
+  border-radius: 6px;
+}
+
+.chase-card__name {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chase-card__price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.booster__actions {
+  padding-top: 4px;
+}

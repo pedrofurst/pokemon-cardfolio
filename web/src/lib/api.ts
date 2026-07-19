@@ -12,6 +12,7 @@ import {
   PriceStatus,
   Sale,
   SalesResponse,
+  StoreResponse,
   WatchEntry,
 } from "./types";
 
@@ -87,4 +88,5 @@ export const api = {
   getDigest: () => fetch(`${BASE}/digest`).then(json<Digest>),
   getFx: () => fetch(`${BASE}/fx`).then(json<FxResponse>),
   getInsights: () => fetch(`${BASE}/insights`).then(json<InsightsResponse>),
+  getStore: () => fetch(`${BASE}/store`).then(json<StoreResponse>),
 };

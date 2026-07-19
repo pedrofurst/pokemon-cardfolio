@@ -64,12 +64,20 @@ const icons = {
       <path d="M20.5 13.5H12V5a8.5 8.5 0 0 1 8.5 8.5Z" />
     </svg>
   ),
+  store: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 10v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9" />
+      <path d="M3 5h18l1.2 4.2a1.6 1.6 0 0 1-1.6 2 2.4 2.4 0 0 1-2.1-1.4A2.4 2.4 0 0 1 16.4 11a2.4 2.4 0 0 1-2.1-1.2A2.4 2.4 0 0 1 12 11a2.4 2.4 0 0 1-2.1-1.2A2.4 2.4 0 0 1 7.7 11a2.4 2.4 0 0 1-2.1-1.2 2.4 2.4 0 0 1-2.1 1.2 1.6 1.6 0 0 1-1.6-2Z" />
+      <path d="M9 20v-5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5" />
+    </svg>
+  ),
 };
 
 const NAV: NavItem[] = [
   { href: "/today", label: "Today", icon: icons.today, match: (p) => p.startsWith("/today") },
   { href: "/", label: "Collection", icon: icons.collection, match: (p) => p === "/" || p.startsWith("/card") },
   { href: "/search", label: "Search & add", icon: icons.search, match: (p) => p.startsWith("/search") },
+  { href: "/store", label: "Store", icon: icons.store, match: (p) => p.startsWith("/store") },
   { href: "/price-check", label: "Price check", icon: icons.priceCheck, match: (p) => p.startsWith("/price-check") },
   { href: "/watchlist", label: "Watchlist", icon: icons.watchlist, match: (p) => p.startsWith("/watchlist") },
   { href: "/opportunities", label: "Opportunities", icon: icons.opportunities, match: (p) => p.startsWith("/opportunities") },
