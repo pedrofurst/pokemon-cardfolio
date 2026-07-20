@@ -1,17 +1,43 @@
 services:
+  redis:
+    image: redis:7-alpine
+    # Cache only — nothing here needs to survive a restart, so no volume and no
+    # persistence. A cold Redis just means the next search goes upstream.
+    command: redis-server --save "" --appendonly no
+    ports:
+      # 6380 on the host: 6379 is often already taken by another project's
+      # Redis. Inside the compose network the backend still talks to :6379.
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   backend:
     build: ./backend
     ports:
       - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    # Picks up backend/.env if you have one, so a local API key works in Docker
+    # too. Optional: the stack still starts without the file.
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
-      # Optional. Without it you're on pokemontcg.io's anonymous rate limit,
-      # which is enough to try the app but will throttle the Store page.
-      POKEMONTCG_API_KEY: ${POKEMONTCG_API_KEY:-}
+      # POKEMONTCG_API_KEY deliberately isn't set here: values in `environment`
+      # win over `env_file`, so declaring it would blank out the key from
+      # backend/.env. Put your key in that file.
       DATABASE_URL: sqlite:////data/cardfolio.db
       ENABLE_SCHEDULER: "true"
       REFRESH_INTERVAL_HOURS: "24"
       # The Store page scans many sets on boot. Turn off for a faster start.
       WARM_STORE_ON_STARTUP: "true"
+      # `redis` is the compose service name. Set to "" to disable caching.
+      REDIS_URL: redis://redis:6379/0
+      SEARCH_CACHE_TTL_SECONDS: "600"
     volumes:
       - cardfolio-data:/data
     healthcheck:

@@ -34,12 +34,13 @@ docker compose up --build
 
 Then open **http://localhost:3000**.
 
-The backend comes up on port 8000, and your SQLite database lives in a named volume (`cardfolio-data`) so it survives rebuilds.
+The backend comes up on port 8000, Redis on 6380, and your SQLite database lives in a named volume (`cardfolio-data`) so it survives rebuilds.
 
-Optionally set a pokemontcg.io API key first — see [Configuration](#configuration):
+Optionally add a pokemontcg.io API key first — see [Configuration](#configuration). Put it in `backend/.env`; Compose reads that file if it exists:
 
 ```bash
-POKEMONTCG_API_KEY=your_key docker compose up --build
+echo "POKEMONTCG_API_KEY=your_key" > backend/.env
+docker compose up --build
 ```
 
 To tear it down (add `-v` to also delete your collection):
@@ -97,6 +98,8 @@ Open **http://localhost:3000**. If the backend isn't running, the app says so ex
 | `ENABLE_SCHEDULER` | `true` | Background job that re-prices your collection on an interval. |
 | `REFRESH_INTERVAL_HOURS` | `24` | How often that job runs. |
 | `WARM_STORE_ON_STARTUP` | `true` | Pre-build the Store cache on boot. Turning it off makes startup fast and the first Store visit slow. |
+| `REDIS_URL` | `redis://localhost:6380/0` | Caches card searches. Optional — if Redis isn't reachable the app logs a warning and runs uncached. Port 6380 because 6379 is often taken. |
+| `SEARCH_CACHE_TTL_SECONDS` | `600` | How long a cached search stays fresh. |
 
 ### Frontend (`web/.env.local`)
 
@@ -115,6 +118,17 @@ Search pokemontcg.io by name, pick the exact printing, and record what you paid 
 ### Price history
 
 Every refresh writes a price snapshot per card plus a portfolio-level snapshot. Both render as animated SVG charts — portfolio value over time on the collection page, market price over time on each card's detail page. With fewer than two data points they degrade to an honest "not enough history yet" state instead of faking a line.
+
+### Search caching
+
+pokemontcg.io is slow and inconsistent — the same query has measured anywhere from
+1 to 30 seconds, with or without an API key. Card searches are cached in Redis for
+10 minutes, which takes a repeat search from seconds to a few milliseconds. Prices
+are deliberately **not** cached: they feed the portfolio's numbers, and a stale one
+would be written into the price history.
+
+Redis is optional. If it isn't running, the app logs a warning at startup and
+serves every search live.
 
 ### Opportunity signals
 
@@ -226,6 +240,7 @@ backend/app/
   services/      business logic
   providers/     external HTTP, behind Protocols
   repositories/  database access
+  cache.py       Redis-backed cache, falls back to a no-op
   models.py      SQLModel tables
   scheduler.py   APScheduler price refresh
 
@@ -241,13 +256,13 @@ Migrations aren't Alembic — `run_migrations()` is an idempotent column-adder t
 
 Every user-owned row carries an `owner_id`, currently hardcoded to `"me"`. Single-user today, but shaped so multi-user wouldn't require a rewrite.
 
-**Stack:** FastAPI · SQLModel · APScheduler · httpx · Next.js 16 (App Router) · React 19 · three.js · TypeScript
+**Stack:** FastAPI · SQLModel · Redis · APScheduler · httpx · Next.js 16 (App Router) · React 19 · three.js · TypeScript
 
 ---
 
 ## Tests
 
-184 backend tests across 21 files, covering services, repositories, routers, migrations, and the scheduler. External HTTP is stubbed with `respx`.
+224 backend tests, covering services, repositories, routers, migrations, and the scheduler. External HTTP is stubbed with `respx`.
 
 ```bash
 cd backend

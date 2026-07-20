@@ -2,8 +2,10 @@ from fastapi import Depends
 from sqlmodel import Session
 
 from app.config import get_settings
+from app.cache import make_cache
 from app.db import get_session
 from app.providers.fx_provider import FxProvider
+from app.providers.cached import CachedPriceProvider
 from app.providers.pokemontcgio import PokemonTcgIoProvider
 from app.repositories.card_repository import CardRepository
 from app.repositories.holding_repository import HoldingRepository
@@ -23,7 +25,15 @@ from app.services.store_service import StoreService
 
 # Single long-lived provider (and its underlying httpx.Client) reused across
 # requests instead of constructing a new client per request.
-_provider = PokemonTcgIoProvider(api_key=get_settings().pokemontcg_api_key)
+_settings = get_settings()
+_upstream_provider = PokemonTcgIoProvider(api_key=_settings.pokemontcg_api_key)
+# Search results are cached; get_price passes through. Falls back to a no-op
+# cache when Redis isn't reachable, so this is safe without Docker.
+_provider = CachedPriceProvider(
+    _upstream_provider,
+    make_cache(_settings.redis_url),
+    _settings.search_cache_ttl_seconds,
+)
 _fx_provider = FxProvider()
 
 
@@ -81,7 +91,10 @@ def get_sale_service(session: Session = Depends(get_session)) -> SaleService:
 
 
 def get_store_service() -> StoreService:
-    return StoreService(_provider)
+    # The raw provider, not the cached wrapper: StoreService needs the
+    # StoreProvider half of the interface (list_sets / get_set_cards), which the
+    # search cache doesn't implement. The store keeps its own 6h disk cache.
+    return StoreService(_upstream_provider)
 
 
 def get_digest_service(session: Session = Depends(get_session)) -> DigestService:

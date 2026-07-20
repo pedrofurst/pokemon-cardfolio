@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     enable_scheduler: bool = True
     refresh_interval_hours: int = 24
     warm_store_on_startup: bool = True
+    # Optional. Empty, or an unreachable server, means searches run uncached.
+    redis_url: str = "redis://localhost:6380/0"
+    search_cache_ttl_seconds: int = 600
 
 
 @lru_cache
