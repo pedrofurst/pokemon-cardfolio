@@ -122,3 +122,21 @@ def test_build_ignores_archived_holdings_in_summary(session):
     digest = service.build()
 
     assert digest["summary"]["total_cost"] == 0.0
+
+
+def test_top_gainer_includes_the_card_image(session):
+    card_repo = CardRepository(session)
+    holding_repo = HoldingRepository(session)
+    price_repo = PriceRepository(session)
+    card_repo.upsert(Card(id="base1-4", name="Charizard", image_url="https://img/charizard.png"))
+    holding_repo.add(Holding(card_id="base1-4", owner_id="me", quantity=1, acquisition_cost=50.0))
+    price_repo.add(PriceSnapshot(card_id="base1-4", market_price=350.0))
+    assert _make_service(session).build()["top_gainer"]["image_url"] == "https://img/charizard.png"
+
+
+def test_top_loser_image_is_none_when_the_card_is_unknown(session):
+    holding_repo = HoldingRepository(session)
+    price_repo = PriceRepository(session)
+    holding_repo.add(Holding(card_id="ghost-1", owner_id="me", quantity=1, acquisition_cost=50.0))
+    price_repo.add(PriceSnapshot(card_id="ghost-1", market_price=10.0))
+    assert _make_service(session).build()["top_loser"]["image_url"] is None

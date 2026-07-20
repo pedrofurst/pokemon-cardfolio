@@ -38,6 +38,7 @@ class DigestService:
         return {
             "card_id": view.holding.card_id,
             "card_name": view.card.name if view.card else view.holding.card_id,
+            "image_url": view.card.image_url if view.card else None,
             "pnl": view.pnl,
             "current_price": view.current_price,
         }

@@ -1054,6 +1054,32 @@ a.tile:hover,
   text-decoration: none;
 }
 
+/* Highlight tiles that carry card art sit the thumbnail beside the text. */
+.insight-card__link--with-art {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.highlight-art {
+  width: 48px;
+  aspect-ratio: 5 / 7;
+  flex: none;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  transition: transform 0.16s ease;
+}
+
+.insight-card__link--with-art:hover .highlight-art {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.highlight-art--empty {
+  display: block;
+  border: 1px dashed var(--line-strong);
+}
+
 .insight-card__link:hover .insight-card__name {
   color: var(--brand-ink);
 }
@@ -1232,6 +1258,11 @@ a.tile:hover,
   .brand__mark,
   .tile--gain:hover .tile__sheen {
     animation: none;
+  }
+  .highlight-art,
+  .insight-card__link--with-art:hover .highlight-art {
+    transition: none;
+    transform: none;
   }
   .tile {
     transition: none;

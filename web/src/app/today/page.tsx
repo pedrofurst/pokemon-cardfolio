@@ -11,6 +11,17 @@ import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui"
 import { CountUp } from "@/components/CountUp";
 import { Reveal } from "@/components/Reveal";
 
+function HighlightArt({ imageUrl, cardName }: { imageUrl: string | null; cardName: string }) {
+  if (!imageUrl) {
+    return <span className="highlight-art highlight-art--empty" aria-hidden />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className="highlight-art" src={imageUrl} alt={cardName} />
+  );
+}
+
 function InsightCard({
   label,
   index,
@@ -127,10 +138,16 @@ export default function TodayPage() {
                   {data.top_gainer ? (
                     <Link
                       href={`/card/${data.top_gainer.card_id}`}
-                      className="insight-card__link"
+                      className="insight-card__link insight-card__link--with-art"
                     >
-                      <div className="insight-card__name">{data.top_gainer.card_name}</div>
-                      <PnLPill value={data.top_gainer.pnl} />
+                      <HighlightArt
+                        imageUrl={data.top_gainer.image_url}
+                        cardName={data.top_gainer.card_name}
+                      />
+                      <div>
+                        <div className="insight-card__name">{data.top_gainer.card_name}</div>
+                        <PnLPill value={data.top_gainer.pnl} />
+                      </div>
                     </Link>
                   ) : (
                     <span className="insight-card__empty">—</span>
@@ -141,10 +158,16 @@ export default function TodayPage() {
                   {data.top_loser ? (
                     <Link
                       href={`/card/${data.top_loser.card_id}`}
-                      className="insight-card__link"
+                      className="insight-card__link insight-card__link--with-art"
                     >
-                      <div className="insight-card__name">{data.top_loser.card_name}</div>
-                      <PnLPill value={data.top_loser.pnl} />
+                      <HighlightArt
+                        imageUrl={data.top_loser.image_url}
+                        cardName={data.top_loser.card_name}
+                      />
+                      <div>
+                        <div className="insight-card__name">{data.top_loser.card_name}</div>
+                        <PnLPill value={data.top_loser.pnl} />
+                      </div>
                     </Link>
                   ) : (
                     <span className="insight-card__empty">—</span>

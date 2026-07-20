@@ -126,6 +126,7 @@ export interface SalesResponse {
 export interface DigestHolding {
   card_id: string;
   card_name: string;
+  image_url: string | null;
   pnl: number;
   current_price: number | null;
 }
