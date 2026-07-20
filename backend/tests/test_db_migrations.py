@@ -119,3 +119,16 @@ def test_run_migrations_skips_tables_that_do_not_exist_yet():
     )
     run_migrations(engine)
     assert _column_names(engine, "card") == set()
+
+
+def test_migration_adds_archived_at_to_existing_holding_table():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False},
+                           poolclass=StaticPool)
+    with engine.begin() as connection:
+        connection.execute(text(
+            "CREATE TABLE holding (id TEXT PRIMARY KEY, owner_id TEXT, card_id TEXT)"
+        ))
+    run_migrations(engine)
+    with engine.begin() as connection:
+        columns = {row[1] for row in connection.execute(text("PRAGMA table_info(holding)"))}
+    assert "archived_at" in columns
