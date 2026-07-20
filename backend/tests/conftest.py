@@ -7,6 +7,11 @@ os.environ["ENABLE_SCHEDULER"] = "0"
 # Same reasoning for the store cache warm-up thread: never spawn it, never
 # touch the network, during tests.
 os.environ["WARM_STORE_ON_STARTUP"] = "0"
+# Never let tests reach a real Redis. deps.py builds its cache at import time,
+# so a developer with Redis running would otherwise get cached search results
+# served past the respx mocks — tests that pass or fail depending on whether a
+# container happens to be up.
+os.environ["REDIS_URL"] = ""
 # Keep any real (non-overridden) lifespan/db access confined to memory so
 # tests never write a stray cardfolio.db file to disk.
 os.environ.setdefault("DATABASE_URL", "sqlite://")

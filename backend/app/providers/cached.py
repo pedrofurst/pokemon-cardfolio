@@ -43,9 +43,14 @@ class CachedPriceProvider:
                 logger.warning("Discarding unreadable cache entry %s", key, exc_info=True)
 
         results = self.inner.search_cards(query)
-        self.cache.set(
-            key, json.dumps([asdict(result) for result in results]), self.ttl_seconds
-        )
+        # Never cache an empty result. pokemontcg.io intermittently returns a
+        # degraded response, and caching one turns a momentary blip into ten
+        # minutes of a wrong answer. A genuine no-match search is cheap to
+        # repeat; a poisoned cache entry is not.
+        if results:
+            self.cache.set(
+                key, json.dumps([asdict(result) for result in results]), self.ttl_seconds
+            )
         return results
 
     def get_price(self, card_id: str) -> PriceResult:

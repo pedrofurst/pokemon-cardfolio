@@ -3,6 +3,7 @@ import time
 import httpx
 
 from app.errors import CardNotFoundError, PriceProviderError
+from app.providers.query import build_search_query
 from app.providers.base import CardResult, PriceResult, SetInfo
 
 BASE_URL = "https://api.pokemontcg.io/v2"
@@ -114,7 +115,7 @@ class PokemonTcgIoProvider:
             response = _get_with_retry(
                 self._client,
                 f"{BASE_URL}/cards",
-                params={"q": f'name:"{query}*"', "pageSize": 20},
+                params={"q": build_search_query(query), "pageSize": 20},
                 headers=self._headers,
             )
             response.raise_for_status()

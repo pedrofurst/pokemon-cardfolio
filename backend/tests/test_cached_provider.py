@@ -108,3 +108,29 @@ def test_get_price_is_not_cached():
     provider.get_price("base1-4")
     provider.get_price("base1-4")
     assert inner.price_calls == 2
+
+
+class EmptyResultProvider:
+    def __init__(self) -> None:
+        self.search_calls = 0
+
+    def search_cards(self, query):
+        self.search_calls += 1
+        return []
+
+    def get_price(self, card_id):
+        raise NotImplementedError
+
+
+def test_empty_results_are_not_cached():
+    cache = DictCache()
+    CachedPriceProvider(EmptyResultProvider(), cache, 600).search_cards("zzzz")
+    assert cache.store == {}
+
+
+def test_empty_results_are_refetched_rather_than_served_from_cache():
+    inner = EmptyResultProvider()
+    provider = CachedPriceProvider(inner, DictCache(), 600)
+    provider.search_cards("zzzz")
+    provider.search_cards("zzzz")
+    assert inner.search_calls == 2
