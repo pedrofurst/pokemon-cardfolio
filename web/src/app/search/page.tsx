@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { CardResult } from "@/lib/types";
 import { useMoney } from "@/components/Currency";
 import { EmptyState, PageHead } from "@/components/ui";
 import { TiltCard } from "@/components/TiltCard";
+import { SkeletonCardGrid } from "@/components/Skeleton";
 import { PackReveal } from "@/components/PackReveal";
 import { useToast } from "@/components/Toast";
 
@@ -26,11 +27,26 @@ const VARIANT_OPTIONS: { value: string; label: string }[] = [
   { value: "1st_edition", label: "1st Edition" },
 ];
 
-export default function SearchPage() {
+function SearchPageFallback() {
+  return (
+    <div className="container">
+      <PageHead
+        eyebrow="Add cards"
+        title="Search & add"
+        subtitle="Find a card by name, then add a copy you own or put it on your watchlist."
+      />
+      <SkeletonCardGrid />
+    </div>
+  );
+}
+
+function SearchPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryParam = searchParams.get("q") ?? "";
   const { toast } = useToast();
   const { fmt } = useMoney();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(queryParam);
   const [results, setResults] = useState<CardResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<CardResult | null>(null);
@@ -43,17 +59,34 @@ export default function SearchPage() {
   const [watched, setWatched] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState<CardResult | null>(null);
 
-  async function runSearch() {
-    if (!query.trim()) return;
+  // The URL is the single source of truth for what's being searched: submitting
+  // pushes ?q=, and this effect reacts to it. That keeps a reload, a shared
+  // link, and back/forward all landing on the same results, and avoids the
+  // double fetch you'd get from searching on submit *and* on param change.
+  const runSearch = useCallback(async (term: string) => {
+    if (!term.trim()) return;
     setSearching(true);
     setWatchError(null);
     try {
-      setResults(await api.searchCards(query));
+      setResults(await api.searchCards(term));
     } catch {
       setResults([]);
     } finally {
       setSearching(false);
     }
+  }, []);
+
+  useEffect(() => {
+    async function run() {
+      await runSearch(queryParam);
+    }
+    run();
+  }, [queryParam, runSearch]);
+
+  function submitSearch() {
+    const term = query.trim();
+    if (!term) return;
+    router.push(`/search?q=${encodeURIComponent(term)}`);
   }
 
   async function add() {
@@ -107,7 +140,7 @@ export default function SearchPage() {
         className="searchbar"
         onSubmit={(e) => {
           e.preventDefault();
-          runSearch();
+          submitSearch();
         }}
       >
         <input
@@ -124,20 +157,22 @@ export default function SearchPage() {
 
       {watchError && <p className="alert" style={{ marginBottom: 16 }}>{watchError}</p>}
 
-      {results === null && (
+      {searching && <SkeletonCardGrid />}
+
+      {!searching && results === null && (
         <EmptyState title="Start with a name">
           Type a Pokémon or card name and hit Search. Results show the market price where TCGplayer
           has one.
         </EmptyState>
       )}
 
-      {results !== null && results.length === 0 && (
+      {!searching && results !== null && results.length === 0 && (
         <EmptyState title="No matches">
           Nothing came back for “{query}”. Try a different spelling or a shorter term.
         </EmptyState>
       )}
 
-      {results !== null && results.length > 0 && (
+      {!searching && results !== null && results.length > 0 && (
         <div className="card-grid">
           {results.map((card) => (
             <TiltCard key={card.id}>
@@ -261,5 +296,16 @@ export default function SearchPage() {
         />
       )}
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary or the production build fails with
+// "Missing Suspense boundary with useSearchParams" — dev renders on demand and
+// hides this, so it only shows up in `next build`.
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchPageFallback />}>
+      <SearchPageInner />
+    </Suspense>
   );
 }

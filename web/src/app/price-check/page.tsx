@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { CardResult, PriceCheckResult } from "@/lib/types";
 import { money, pct } from "@/lib/format";
 import { EmptyState, PageHead } from "@/components/ui";
+import { SkeletonCardGrid } from "@/components/Skeleton";
 
 type Tone = "gain" | "gold" | "loss" | "brand";
 
@@ -175,19 +176,21 @@ export default function PriceCheckPage() {
             </button>
           </form>
 
-          {results === null && (
+          {searching && <SkeletonCardGrid count={4} />}
+
+          {!searching && results === null && (
             <EmptyState title="Start with a name">
               Type a card name and hit Search, then pick the card you were offered.
             </EmptyState>
           )}
 
-          {results !== null && results.length === 0 && (
+          {!searching && results !== null && results.length === 0 && (
             <EmptyState title="No matches">
               Nothing came back for “{query}”. Try a different spelling or a shorter term.
             </EmptyState>
           )}
 
-          {results !== null && results.length > 0 && (
+          {!searching && results !== null && results.length > 0 && (
             <div className="card-grid">
               {results.map((card) => (
                 <div className="tile" key={card.id}>
