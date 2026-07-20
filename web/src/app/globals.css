@@ -1021,6 +1021,15 @@ a.tile:hover,
   gap: 16px;
 }
 
+/* Same stretch problem as .card-grid: grid items size to the tallest cell in
+   the row, but the .reveal wrapper doesn't pass that height to the .panel, so
+   a tile carrying card art leaves its text-only neighbours short. */
+.insight-grid > *,
+.insight-grid .reveal,
+.insight-grid .panel {
+  height: 100%;
+}
+
 .insight-card__label {
   font-size: 11.5px;
   font-weight: 600;
