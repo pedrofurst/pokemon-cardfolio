@@ -25,6 +25,7 @@ export interface HoldingView {
     acquisition_cost: number;
     quantity: number;
     notes: string;
+    archived_at: string | null;
   };
   card: { id: string; name: string; set_name: string; image_url: string } | null;
   current_price: number | null;

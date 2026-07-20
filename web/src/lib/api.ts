@@ -34,7 +34,12 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then(json<unknown>),
-  listHoldings: () => fetch(`${BASE}/holdings`).then(json<CollectionResponse>),
+  listHoldings: (archived = false) =>
+    fetch(`${BASE}/holdings?archived=${archived}`).then(json<CollectionResponse>),
+  archiveHolding: (holdingId: string) =>
+    fetch(`${BASE}/holdings/${holdingId}/archive`, { method: "PATCH" }).then(json),
+  restoreHolding: (holdingId: string) =>
+    fetch(`${BASE}/holdings/${holdingId}/restore`, { method: "PATCH" }).then(json),
   refreshPrices: () =>
     fetch(`${BASE}/prices/refresh`, { method: "POST" }).then(
       json<{ written: number; failed: number }>
