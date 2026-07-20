@@ -467,3 +467,12 @@ def test_archiving_an_already_archived_holding_is_idempotent():
     response = client.patch(f"/holdings/{holding_id}/archive")
 
     assert response.status_code == 200
+
+
+def test_restoring_a_never_archived_holding_is_idempotent():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+
+    response = client.patch(f"/holdings/{holding_id}/restore")
+
+    assert response.status_code == 200
