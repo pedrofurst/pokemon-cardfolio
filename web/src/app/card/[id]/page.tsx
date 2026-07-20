@@ -33,6 +33,8 @@ export default function CardDetail() {
   const [saleError, setSaleError] = useState<string | null>(null);
   const [submittingSale, setSubmittingSale] = useState(false);
   const [viewing3D, setViewing3D] = useState(false);
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +144,21 @@ export default function CardDetail() {
     }
   }
 
+  async function archive() {
+    const holding = view!.holding;
+    setArchiving(true);
+    try {
+      await api.archiveHolding(holding.id);
+      toast("Card archived — its price history is kept.");
+      router.push("/");
+    } catch {
+      toast("Couldn't archive that card.", "error");
+    } finally {
+      setArchiving(false);
+      setConfirmingArchive(false);
+    }
+  }
+
   return (
     <div className="container">
       {backLink}
@@ -223,6 +240,9 @@ export default function CardDetail() {
                 View in 3D ✨
               </button>
             )}
+            <button className="btn" onClick={() => setConfirmingArchive(true)}>
+              Archive
+            </button>
           </div>
         </div>
       </div>
@@ -287,6 +307,31 @@ export default function CardDetail() {
               </button>
               <button className="btn btn--primary" onClick={submitSale} disabled={submittingSale}>
                 {submittingSale ? "Logging…" : "Log sale"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmingArchive && (
+        <div className="modal-scrim" onClick={() => setConfirmingArchive(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__head">
+              <div>
+                <div className="eyebrow">Archive card</div>
+                <div className="modal__title">{view.card?.name ?? params.id}</div>
+              </div>
+            </div>
+            <p style={{ color: "var(--muted)" }}>
+              It leaves your collection and stops counting toward your totals. Its price
+              history is kept, and you can restore it from the collection page.
+            </p>
+            <div className="row" style={{ justifyContent: "flex-end", marginTop: 4 }}>
+              <button className="btn btn--ghost" onClick={() => setConfirmingArchive(false)}>
+                Cancel
+              </button>
+              <button className="btn btn--primary" onClick={archive} disabled={archiving}>
+                {archiving ? "Archiving…" : "Archive"}
               </button>
             </div>
           </div>
