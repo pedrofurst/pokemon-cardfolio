@@ -110,7 +110,7 @@ Open **http://localhost:3000**. If the backend isn't running, the app says so ex
 
 ### Collection & P&L
 
-Search pokemontcg.io by name, pick the exact printing, and record what you paid along with condition (Raw / NM / LP / MP / HP / DMG) and variant (Normal / Holofoil / Reverse Holo / 1st Edition). The portfolio slab tracks total value, cost basis, unrealized P&L, return %, and card count. One click re-prices everything you own and everything you're watching.
+Search pokemontcg.io by name, pick the exact printing, and record what you paid along with condition (Raw / NM / LP / MP / HP / DMG) and variant (Normal / Holofoil / Reverse Holo / 1st Edition). The portfolio slab tracks total value, cost basis, unrealized P&L, return %, and card count. One click re-prices everything you own and everything you're watching. Cards you no longer want to track can be archived rather than deleted: they leave your totals and stop consuming API quota on refreshes, but their price history survives and one click restores them.
 
 ### Price history
 
@@ -196,8 +196,10 @@ Full interactive docs at `/docs` when the backend is running.
 | `GET` | `/health` | Liveness check |
 | `GET` | `/cards/search?q=` | Search cards by name |
 | `POST` | `/holdings` | Add a card you own |
-| `GET` | `/holdings` | Collection + portfolio summary |
+| `GET` | `/holdings` | Collection + portfolio summary; optional `archived` query param |
 | `POST` | `/holdings/{id}/sell` | Log a sale |
+| `PATCH` | `/holdings/{id}/archive` | Archive a holding, keeping its price history |
+| `PATCH` | `/holdings/{id}/restore` | Restore an archived holding |
 | `GET` | `/sales` | Realized P&L + sale history |
 | `POST` | `/prices/refresh` | Re-price held and watched cards |
 | `GET` | `/prices/status` | Last refresh timestamp |
