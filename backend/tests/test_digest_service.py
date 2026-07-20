@@ -109,3 +109,16 @@ def test_build_with_empty_collection_returns_zeroed_summary(session):
     digest = service.build()
 
     assert digest["summary"] == {"total_cost": 0.0, "total_value": 0.0, "pnl": 0.0, "pnl_pct": 0.0}
+
+
+def test_build_ignores_archived_holdings_in_summary(session):
+    card_repo = CardRepository(session)
+    holding_repo = HoldingRepository(session)
+    card_repo.upsert(Card(id="base1-4", name="Charizard"))
+    holding = holding_repo.add(Holding(card_id="base1-4", owner_id="me", quantity=1, acquisition_cost=50.0))
+    holding_repo.set_archived(holding.id, True)
+    service = _make_service(session)
+
+    digest = service.build()
+
+    assert digest["summary"]["total_cost"] == 0.0

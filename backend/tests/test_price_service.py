@@ -94,3 +94,17 @@ def test_refresh_still_writes_snapshot_for_the_good_card_when_one_fails(session)
                           HoldingRepository(session), WatchRepository(session))
     service.refresh_prices()
     assert price_repo.latest_for("base1-5").market_price == 400.0
+
+
+def test_refresh_skips_archived_holdings(session):
+    CardRepository(session).upsert(Card(id="base1-4", name="Charizard"))
+    holding_repo = HoldingRepository(session)
+    holding = holding_repo.add(Holding(card_id="base1-4", owner_id="me"))
+    holding_repo.set_archived(holding.id, True)
+    service = PriceService(CardRepository(session), PriceRepository(session),
+                          FakeProvider(price=400.0), holding_repo,
+                          WatchRepository(session))
+
+    result = service.refresh_prices()
+
+    assert result == {"written": 0, "failed": 0}

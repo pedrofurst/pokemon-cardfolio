@@ -102,3 +102,31 @@ def test_build_with_empty_collection_returns_zero_total_value(session):
 def test_build_with_empty_collection_returns_no_top_cards(session):
     result = _service(session).build()
     assert result["allocation"]["top_cards"] == []
+
+
+def test_set_progress_ignores_archived_holdings(session):
+    card_repo = CardRepository(session)
+    holding_repo = HoldingRepository(session)
+    card_repo.upsert(Card(
+        id="base1-4", name="Charizard", set_id="base1", set_name="Base", set_total=102,
+    ))
+    holding = holding_repo.add(Holding(card_id="base1-4", owner_id="me"))
+    holding_repo.set_archived(holding.id, True)
+
+    rows = _service(session).set_progress()
+
+    assert rows == []
+
+
+def test_allocation_ignores_archived_holdings(session):
+    card_repo = CardRepository(session)
+    holding_repo = HoldingRepository(session)
+    price_repo = PriceRepository(session)
+    card_repo.upsert(Card(id="base1-4", name="Charizard"))
+    holding = holding_repo.add(Holding(card_id="base1-4", owner_id="me"))
+    holding_repo.set_archived(holding.id, True)
+    price_repo.add(PriceSnapshot(card_id="base1-4", market_price=100.0))
+
+    allocation = _service(session).allocation()
+
+    assert allocation["total_value"] == 0.0
