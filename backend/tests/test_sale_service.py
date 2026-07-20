@@ -69,6 +69,37 @@ def test_record_sale_for_unknown_holding_raises_value_error(session):
         service.record_sale("nonexistent-id", quantity=1, sale_price=100.0)
 
 
+def test_record_sale_of_an_archived_holding_raises_value_error(session):
+    holding = _seed_holding(session, quantity=1)
+    HoldingRepository(session).set_archived(holding.id, True)
+    service = _make_service(session)
+
+    with pytest.raises(ValueError):
+        service.record_sale(holding.id, quantity=1, sale_price=100.0)
+
+
+def test_record_sale_of_an_archived_holding_does_not_delete_it(session):
+    holding = _seed_holding(session, quantity=1)
+    HoldingRepository(session).set_archived(holding.id, True)
+    service = _make_service(session)
+
+    with pytest.raises(ValueError):
+        service.record_sale(holding.id, quantity=1, sale_price=100.0)
+
+    assert HoldingRepository(session).get(holding.id) is not None
+
+
+def test_record_sale_of_an_archived_holding_writes_no_sale_row(session):
+    holding = _seed_holding(session, quantity=1)
+    HoldingRepository(session).set_archived(holding.id, True)
+    service = _make_service(session)
+
+    with pytest.raises(ValueError):
+        service.record_sale(holding.id, quantity=1, sale_price=100.0)
+
+    assert SaleRepository(session).list("me") == []
+
+
 def test_realized_summary_total_proceeds_nets_out_fees(session):
     holding = _seed_holding(session, quantity=3, acquisition_cost=50.0)
     service = _make_service(session)

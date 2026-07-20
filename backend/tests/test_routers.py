@@ -328,6 +328,16 @@ def test_sell_unknown_holding_returns_400():
     assert response.status_code == 400
 
 
+def test_sell_archived_holding_returns_400():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.patch(f"/holdings/{holding_id}/archive")
+
+    response = client.post(f"/holdings/{holding_id}/sell", json={"quantity": 1, "sale_price": 100.0})
+
+    assert response.status_code == 400
+
+
 def test_get_sales_returns_summary_and_items():
     client = _client()
     holding_id = _add_holding_with_quantity(client, quantity=1)

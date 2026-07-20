@@ -26,6 +26,8 @@ class SaleService:
         holding = self.holding_repo.get(holding_id)
         if holding is None or holding.owner_id != owner_id:
             raise ValueError("holding not found")
+        if holding.archived_at is not None:
+            raise ValueError("cannot sell an archived holding")
         if not (1 <= quantity <= holding.quantity):
             raise ValueError("invalid quantity")
 
