@@ -10,6 +10,8 @@ import { useMoney } from "@/components/Currency";
 import { ConnectionError, PnLPill } from "@/components/ui";
 import { TrendChart } from "@/components/TrendChart";
 import { Reveal } from "@/components/Reveal";
+import { TiltCard } from "@/components/TiltCard";
+import { CountUp } from "@/components/CountUp";
 import { useToast } from "@/components/Toast";
 
 const HoloCard3D = dynamic(
@@ -185,8 +187,11 @@ export default function CardDetail() {
       {backLink}
       <div className="grid-2">
         <Reveal index={0}>
-          <div className={`tile${gain ? " tile--gain" : ""}`} style={{ maxWidth: 340 }}>
-            <div className="tile__art">
+          {/* The width lives on the tilt wrapper, not the tile: otherwise the
+              hover area is the whole column and the card tilts from dead space. */}
+          <TiltCard className="card-hero">
+            <div className={`tile${gain ? " tile--gain" : ""}`}>
+              <div className="tile__art">
               {view.card?.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={view.card.image_url} alt={view.card?.name ?? "Card"} />
@@ -194,8 +199,9 @@ export default function CardDetail() {
                 <span className="tile__art--empty">No image</span>
               )}
               <span className="tile__sheen" aria-hidden />
+              </div>
             </div>
-          </div>
+          </TiltCard>
         </Reveal>
 
         <div className="stack">
@@ -230,12 +236,18 @@ export default function CardDetail() {
                 <div className="ledger__row">
                   <span className="ledger__k">Current price</span>
                   <span className="ledger__v">
-                    {view.current_price === null ? "Unpriced" : fmt(view.current_price)}
+                    {view.current_price === null ? (
+                      "Unpriced"
+                    ) : (
+                      <CountUp value={view.current_price} format={fmt} />
+                    )}
                   </span>
                 </div>
                 <div className="ledger__row">
                   <span className="ledger__k">Cost basis</span>
-                  <span className="ledger__v">{fmt(view.holding.acquisition_cost)}</span>
+                  <span className="ledger__v">
+                    <CountUp value={view.holding.acquisition_cost} format={fmt} />
+                  </span>
                 </div>
                 <div className="ledger__row is-total">
                   <span className="ledger__k" style={{ color: "var(--ink)", fontWeight: 600 }}>

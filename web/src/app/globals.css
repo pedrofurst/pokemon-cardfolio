@@ -1015,6 +1015,12 @@ a.tile:hover,
   align-items: start;
 }
 
+/* Card detail hero: the tilt wrapper carries the width so the hover area
+   matches the card rather than the whole column. */
+.card-hero {
+  max-width: 340px;
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
