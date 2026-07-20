@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+
+// useLayoutEffect measures before paint, so the chart never shows a frame at its
+// fallback width. It doesn't run on the server, where there is nothing to
+// measure, so fall back to useEffect there to avoid React's SSR warning.
+const useMeasureEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface TrendChartPoint {
   t: string;
@@ -14,9 +19,10 @@ interface TrendChartProps {
   ariaLabel?: string;
 }
 
-const VIEWBOX_WIDTH = 300;
+const FALLBACK_WIDTH = 300;
 const VERTICAL_PADDING_RATIO = 0.14;
 const FALLBACK_PATH_LENGTH = 1000;
+const END_POINT_RADIUS = 4;
 
 function prefersReducedMotion(): boolean {
   return (
@@ -34,8 +40,38 @@ function buildLinePath(coordinates: Array<[number, number]>): string {
 export function TrendChart({ points, height = 96, accent, ariaLabel }: TrendChartProps) {
   const gradientId = `trend-gradient-${useId()}`;
   const lineRef = useRef<SVGPathElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [pathLength, setPathLength] = useState(FALLBACK_PATH_LENGTH);
   const [isDrawn, setIsDrawn] = useState(false);
+  // The viewBox tracks the rendered pixel width so one SVG unit is always one
+  // pixel. Without this the chart stretches a fixed-width viewBox across the
+  // container, which turns the end-point circle into an ellipse and makes
+  // stroke widths differ between the horizontal and vertical axes.
+  const [chartWidth, setChartWidth] = useState(FALLBACK_WIDTH);
+
+  useMeasureEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    function measure(width: number) {
+      if (width > 0) {
+        setChartWidth(width);
+      }
+    }
+
+    measure(container.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        measure(entry.contentRect.width);
+      }
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
 
   const strokeColor = accent ?? "var(--brand)";
   const hasEnoughHistory = points.length >= 2;
@@ -47,9 +83,13 @@ export function TrendChart({ points, height = 96, accent, ariaLabel }: TrendChar
   const verticalPadding = height * VERTICAL_PADDING_RATIO;
   const usableHeight = height - verticalPadding * 2;
 
+  // Inset by the marker radius so the end-point dot isn't clipped at the edges.
+  const horizontalInset = END_POINT_RADIUS;
+  const usableWidth = Math.max(chartWidth - horizontalInset * 2, 1);
+
   const coordinates: Array<[number, number]> = hasEnoughHistory
     ? points.map((point, index) => {
-        const x = (index / (points.length - 1)) * VIEWBOX_WIDTH;
+        const x = horizontalInset + (index / (points.length - 1)) * usableWidth;
         const normalized = valueRange === 0 ? 0.5 : (point.v - minValue) / valueRange;
         const y = verticalPadding + (1 - normalized) * usableHeight;
         return [x, y];
@@ -87,18 +127,17 @@ export function TrendChart({ points, height = 96, accent, ariaLabel }: TrendChar
 
   if (!hasEnoughHistory) {
     return (
-      <div className="trend-chart trend-chart--empty" style={{ height }}>
+      <div ref={containerRef} className="trend-chart trend-chart--empty" style={{ height }}>
         <svg
-          viewBox={`0 0 ${VIEWBOX_WIDTH} ${height}`}
+          viewBox={`0 0 ${chartWidth} ${height}`}
           width="100%"
           height={height}
-          preserveAspectRatio="none"
           aria-hidden="true"
         >
           <line
             x1={0}
             y1={height / 2}
-            x2={VIEWBOX_WIDTH}
+            x2={chartWidth}
             y2={height / 2}
             stroke="var(--line)"
             strokeWidth={1.5}
@@ -111,12 +150,11 @@ export function TrendChart({ points, height = 96, accent, ariaLabel }: TrendChar
   }
 
   return (
-    <div className="trend-chart" style={{ height }}>
+    <div ref={containerRef} className="trend-chart" style={{ height }}>
       <svg
-        viewBox={`0 0 ${VIEWBOX_WIDTH} ${height}`}
+        viewBox={`0 0 ${chartWidth} ${height}`}
         width="100%"
         height={height}
-        preserveAspectRatio="none"
         role="img"
         aria-label={ariaLabel ?? "Trend chart"}
       >
@@ -148,7 +186,12 @@ export function TrendChart({ points, height = 96, accent, ariaLabel }: TrendChar
           }}
         />
         {lastCoordinate && (
-          <circle cx={lastCoordinate[0]} cy={lastCoordinate[1]} r={3.5} fill={strokeColor} />
+          <circle
+            cx={lastCoordinate[0]}
+            cy={lastCoordinate[1]}
+            r={END_POINT_RADIUS}
+            fill={strokeColor}
+          />
         )}
       </svg>
     </div>

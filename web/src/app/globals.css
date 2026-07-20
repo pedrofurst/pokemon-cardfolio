@@ -532,6 +532,17 @@ button {
   gap: 16px;
 }
 
+/* Grid items stretch to the tallest cell in their row, but the wrappers between
+   .card-grid and .tile (.reveal, .tilt) don't pass that height down, so a set
+   name wrapping to a second line leaves its neighbours short. Scoped to the
+   grid so a standalone .tile — the card detail page — still sizes to content. */
+.card-grid > *,
+.card-grid .reveal,
+.card-grid .tilt,
+.card-grid .tile {
+  height: 100%;
+}
+
 .tile {
   position: relative;
   display: flex;
