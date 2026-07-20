@@ -5,5 +5,12 @@ __pycache__/
 node_modules/
 .next/
 .env
+.env.local
 *.db
 .store_cache.json
+
+# tooling / local caches
+.npm/
+.pytest_cache/
+tsconfig.tsbuildinfo
+.DS_Store

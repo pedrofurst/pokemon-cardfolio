@@ -1,0 +1,39 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Optional. Without it you're on pokemontcg.io's anonymous rate limit,
+      # which is enough to try the app but will throttle the Store page.
+      POKEMONTCG_API_KEY: ${POKEMONTCG_API_KEY:-}
+      DATABASE_URL: sqlite:////data/cardfolio.db
+      ENABLE_SCHEDULER: "true"
+      REFRESH_INTERVAL_HOURS: "24"
+      # The Store page scans many sets on boot. Turn off for a faster start.
+      WARM_STORE_ON_STARTUP: "true"
+    volumes:
+      - cardfolio-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: ./web
+      args:
+        # Baked into the client bundle at build time. This is the URL your
+        # browser uses to reach the backend, so it stays localhost even
+        # though the containers talk to each other as `backend`.
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  cardfolio-data:
