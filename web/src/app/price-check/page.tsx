@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { CardResult, PriceCheckResult } from "@/lib/types";
 import { money, pct } from "@/lib/format";
@@ -91,8 +92,24 @@ function PriceGauge({ result }: { result: PriceCheckResult }) {
   );
 }
 
-export default function PriceCheckPage() {
-  const [query, setQuery] = useState("");
+function PriceCheckFallback() {
+  return (
+    <div className="container">
+      <PageHead
+        eyebrow="Buy-time check"
+        title="Am I overpaying?"
+        subtitle="Search a card, enter the asking price, and see how it stacks up against the market."
+      />
+      <SkeletonCardGrid count={4} />
+    </div>
+  );
+}
+
+function PriceCheckPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryParam = searchParams.get("q") ?? "";
+  const [query, setQuery] = useState(queryParam);
   const [results, setResults] = useState<CardResult[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<CardResult | null>(null);
@@ -101,16 +118,31 @@ export default function PriceCheckPage() {
   const [checkError, setCheckError] = useState<string | null>(null);
   const [result, setResult] = useState<PriceCheckResult | null>(null);
 
-  async function runSearch() {
-    if (!query.trim()) return;
+  // Same contract as /search: the ?q= param drives the search, so a reload or a
+  // shared link lands on the same results.
+  const runSearch = useCallback(async (term: string) => {
+    if (!term.trim()) return;
     setSearching(true);
     try {
-      setResults(await api.searchCards(query));
+      setResults(await api.searchCards(term));
     } catch {
       setResults([]);
     } finally {
       setSearching(false);
     }
+  }, []);
+
+  useEffect(() => {
+    async function run() {
+      await runSearch(queryParam);
+    }
+    run();
+  }, [queryParam, runSearch]);
+
+  function submitSearch() {
+    const term = query.trim();
+    if (!term) return;
+    router.push(`/price-check?q=${encodeURIComponent(term)}`);
   }
 
   function selectCard(card: CardResult) {
@@ -161,7 +193,7 @@ export default function PriceCheckPage() {
             className="searchbar"
             onSubmit={(e) => {
               e.preventDefault();
-              runSearch();
+              submitSearch();
             }}
           >
             <input
@@ -337,5 +369,15 @@ export default function PriceCheckPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useSearchParams requires a Suspense boundary or `next build` fails; dev
+// renders on demand and hides this.
+export default function PriceCheckPage() {
+  return (
+    <Suspense fallback={<PriceCheckFallback />}>
+      <PriceCheckPageInner />
+    </Suspense>
   );
 }
