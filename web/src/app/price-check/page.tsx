@@ -7,6 +7,8 @@ import { CardResult, PriceCheckResult } from "@/lib/types";
 import { money, pct } from "@/lib/format";
 import { EmptyState, PageHead } from "@/components/ui";
 import { SkeletonCardGrid } from "@/components/Skeleton";
+import { TiltCard } from "@/components/TiltCard";
+import { Reveal } from "@/components/Reveal";
 
 type Tone = "gain" | "gold" | "loss" | "brand";
 
@@ -224,8 +226,10 @@ function PriceCheckPageInner() {
 
           {!searching && results !== null && results.length > 0 && (
             <div className="card-grid">
-              {results.map((card) => (
-                <div className="tile" key={card.id}>
+              {results.map((card, index) => (
+                <Reveal key={card.id} index={index}>
+                  <TiltCard>
+                <div className="tile">
                   <div className="tile__art">
                     {card.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -259,6 +263,8 @@ function PriceCheckPageInner() {
                     </button>
                   </div>
                 </div>
+                  </TiltCard>
+                </Reveal>
               ))}
             </div>
           )}
