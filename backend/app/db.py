@@ -14,6 +14,7 @@ _MIGRATION_COLUMNS: list[tuple[str, str, str]] = [
     ("card", "set_id", "TEXT NOT NULL DEFAULT ''"),
     ("card", "set_total", "INTEGER"),
     ("holding", "variant", "TEXT NOT NULL DEFAULT 'normal'"),
+    ("holding", "archived_at", "TIMESTAMP"),
     ("pricesnapshot", "low", "REAL"),
     ("pricesnapshot", "mid", "REAL"),
     ("pricesnapshot", "high", "REAL"),

@@ -562,6 +562,15 @@ a.tile:hover,
   border-color: var(--line-strong);
 }
 
+.tile--archived {
+  opacity: 0.55;
+  transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.tile--archived:hover {
+  opacity: 1;
+}
+
 .tile__art {
   position: relative;
   aspect-ratio: 5 / 7;

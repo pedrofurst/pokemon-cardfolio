@@ -33,17 +33,25 @@ export default function CardDetail() {
   const [saleError, setSaleError] = useState<string | null>(null);
   const [submittingSale, setSubmittingSale] = useState(false);
   const [viewing3D, setViewing3D] = useState(false);
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const [data, cardHistory] = await Promise.all([
+        const [active_, archived, cardHistory] = await Promise.all([
           api.listHoldings(),
+          api.listHoldings(true),
           api.getCardHistory(params.id),
         ]);
         if (!active) return;
-        setView(data.items.find((i) => i.holding.card_id === params.id) ?? null);
+        const found =
+          active_.items.find((i) => i.holding.card_id === params.id) ??
+          archived.items.find((i) => i.holding.card_id === params.id) ??
+          null;
+        setView(found);
         setHistory(cardHistory);
         setLoaded(true);
       } catch {
@@ -97,6 +105,7 @@ export default function CardDetail() {
   }
 
   const gain = view.pnl > 0;
+  const isArchived = view.holding.archived_at !== null;
 
   function openSellModal() {
     setSaleQuantity("1");
@@ -142,6 +151,35 @@ export default function CardDetail() {
     }
   }
 
+  async function archive() {
+    const holding = view!.holding;
+    setArchiving(true);
+    try {
+      await api.archiveHolding(holding.id);
+      toast("Card archived — its price history is kept.");
+      router.push("/");
+    } catch {
+      toast("Couldn't archive that card.", "error");
+    } finally {
+      setArchiving(false);
+      setConfirmingArchive(false);
+    }
+  }
+
+  async function restore() {
+    const holding = view!.holding;
+    setRestoring(true);
+    try {
+      await api.restoreHolding(holding.id);
+      toast("Card restored to your collection.");
+      router.push("/");
+    } catch {
+      toast("Couldn't restore that card.", "error");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   return (
     <div className="container">
       {backLink}
@@ -171,6 +209,7 @@ export default function CardDetail() {
               )}
               {view.holding.is_graded && <span className="badge badge--gold">graded</span>}
               {view.holding.quantity > 1 && <span className="badge">×{view.holding.quantity}</span>}
+              {isArchived && <span className="badge">archived</span>}
             </div>
           </div>
 
@@ -215,12 +254,23 @@ export default function CardDetail() {
             <Link href="/search" className="btn">
               Add another
             </Link>
-            <button className="btn" onClick={openSellModal}>
-              Log a sale
-            </button>
+            {!isArchived && (
+              <button className="btn" onClick={openSellModal}>
+                Log a sale
+              </button>
+            )}
             {view.card?.image_url && (
               <button className="btn" onClick={() => setViewing3D(true)}>
                 View in 3D ✨
+              </button>
+            )}
+            {isArchived ? (
+              <button className="btn" onClick={restore} disabled={restoring}>
+                {restoring ? "Restoring…" : "Restore"}
+              </button>
+            ) : (
+              <button className="btn" onClick={() => setConfirmingArchive(true)}>
+                Archive
               </button>
             )}
           </div>
@@ -287,6 +337,31 @@ export default function CardDetail() {
               </button>
               <button className="btn btn--primary" onClick={submitSale} disabled={submittingSale}>
                 {submittingSale ? "Logging…" : "Log sale"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmingArchive && (
+        <div className="modal-scrim" onClick={() => setConfirmingArchive(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__head">
+              <div>
+                <div className="eyebrow">Archive card</div>
+                <div className="modal__title">{view.card?.name ?? params.id}</div>
+              </div>
+            </div>
+            <p style={{ color: "var(--muted)" }}>
+              It leaves your collection and stops counting toward your totals. Its price
+              history is kept, and you can restore it from the collection page.
+            </p>
+            <div className="row" style={{ justifyContent: "flex-end", marginTop: 4 }}>
+              <button className="btn btn--ghost" onClick={() => setConfirmingArchive(false)}>
+                Cancel
+              </button>
+              <button className="btn btn--primary" onClick={archive} disabled={archiving}>
+                {archiving ? "Archiving…" : "Archive"}
               </button>
             </div>
           </div>

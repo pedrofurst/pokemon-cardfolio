@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.db import init_db
-from app.errors import CardNotFoundError, PriceProviderError
+from app.errors import CardNotFoundError, HoldingNotFoundError, PriceProviderError
 from app.routers import (
     cards,
     digest,
@@ -108,6 +108,11 @@ def create_application() -> FastAPI:
     @application.exception_handler(CardNotFoundError)
     def handle_card_not_found(request: Request, error: CardNotFoundError) -> JSONResponse:
         logger.warning("Card not found: %s", error)
+        return JSONResponse(status_code=404, content={"detail": str(error)})
+
+    @application.exception_handler(HoldingNotFoundError)
+    def handle_holding_not_found(request: Request, error: HoldingNotFoundError) -> JSONResponse:
+        logger.warning("Holding not found: %s", error)
         return JSONResponse(status_code=404, content={"detail": str(error)})
 
     @application.exception_handler(PriceProviderError)

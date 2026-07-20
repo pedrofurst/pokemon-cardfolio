@@ -31,6 +31,7 @@ class Holding(SQLModel, table=True):
     quantity: int = 1
     notes: str = ""
     variant: str = "normal"
+    archived_at: datetime | None = None
 
 
 class WatchItem(SQLModel, table=True):

@@ -135,3 +135,15 @@ def test_add_watch_twice_for_same_card_updates_target_price_to_latest_call(sessi
     watch_items = WatchRepository(session).list("me")
 
     assert watch_items[0].target_price == 75.0
+
+
+def test_deals_ignore_archived_holdings(session):
+    CardRepository(session).upsert(Card(id="base1-4", name="Charizard"))
+    holding_repo = HoldingRepository(session)
+    holding = holding_repo.add(Holding(card_id="base1-4", owner_id="me"))
+    holding_repo.set_archived(holding.id, True)
+    PriceRepository(session).add(PriceSnapshot(card_id="base1-4", market_price=100.0, direct_low=70.0))
+
+    signals = _make_service(session).deals()
+
+    assert signals == []

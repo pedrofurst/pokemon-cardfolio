@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { CollectionResponse, PortfolioPoint, PriceStatus } from "@/lib/types";
 import { pct, timeAgo } from "@/lib/format";
 import { useMoney } from "@/components/Currency";
+import { useToast } from "@/components/Toast";
 import { ConnectionError, EmptyState, PageHead, PnLPill } from "@/components/ui";
 import { CountUp } from "@/components/CountUp";
 import { TrendChart } from "@/components/TrendChart";
@@ -19,7 +20,10 @@ const FLASH_DURATION_MS = 900;
 
 export default function Home() {
   const { fmt } = useMoney();
+  const { toast } = useToast();
   const [data, setData] = useState<CollectionResponse | null>(null);
+  const [archivedData, setArchivedData] = useState<CollectionResponse | null>(null);
+  const [showingArchived, setShowingArchived] = useState(false);
   const [portfolioHistory, setPortfolioHistory] = useState<PortfolioPoint[]>([]);
   const [priceStatus, setPriceStatus] = useState<PriceStatus | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,17 +34,21 @@ export default function Home() {
 
   const load = useCallback(async () => {
     try {
-      const [holdings, history, status] = await Promise.all([
+      const [holdings, archived, history, status] = await Promise.all([
         api.listHoldings(),
+        api.listHoldings(true),
         api.getPortfolioHistory(),
         api.getPriceStatus(),
       ]);
       setData(holdings);
+      setArchivedData(archived);
       setPortfolioHistory(history);
       setPriceStatus(status);
       setLoadError(false);
+      return archived;
     } catch {
       setLoadError(true);
+      return null;
     }
   }, []);
 
@@ -58,6 +66,18 @@ export default function Home() {
       }
     };
   }, []);
+
+  async function restore(holdingId: string) {
+    try {
+      await api.restoreHolding(holdingId);
+      const archived = await load();
+      if (archived !== null && archived.items.length === 0) {
+        setShowingArchived(false);
+      }
+    } catch {
+      toast("Couldn't restore that card.", "error");
+    }
+  }
 
   async function refresh() {
     setRefreshing(true);
@@ -101,6 +121,7 @@ export default function Home() {
 
   const summary = data?.summary;
   const items = data?.items ?? [];
+  const visibleItems = showingArchived ? archivedData?.items ?? [] : items;
 
   return (
     <div className="container">
@@ -207,32 +228,47 @@ export default function Home() {
       <section className="section">
         <div className="section__head">
           <span className="section__title">Holdings</span>
-          {items.length > 0 && <span className="section__count">{items.length}</span>}
+          {visibleItems.length > 0 && <span className="section__count">{visibleItems.length}</span>}
+          {(archivedData?.items.length ?? 0) > 0 && (
+            <button
+              className={`btn btn--sm${showingArchived ? " btn--primary" : ""}`}
+              onClick={() => setShowingArchived((previous) => !previous)}
+            >
+              Archived ({archivedData?.items.length ?? 0})
+            </button>
+          )}
         </div>
 
-        {data && items.length === 0 ? (
-          <EmptyState
-            title="No cards yet"
-            action={
-              <Link href="/search" className="btn btn--primary">
-                Find your first card
-              </Link>
-            }
-          >
-            Search a card by name, add what you own with its cost, then refresh prices to see your P&amp;L.
-          </EmptyState>
+        {data && visibleItems.length === 0 ? (
+          showingArchived ? (
+            <EmptyState title="No archived cards">
+              Restoring a card brings it back to your active collection.
+            </EmptyState>
+          ) : (
+            <EmptyState
+              title="No cards yet"
+              action={
+                <Link href="/search" className="btn btn--primary">
+                  Find your first card
+                </Link>
+              }
+            >
+              Search a card by name, add what you own with its cost, then refresh prices to see your P&amp;L.
+            </EmptyState>
+          )
         ) : (
           <div className="card-grid">
-            {items.map((item, index) => {
+            {visibleItems.map((item, index) => {
               const gain = item.pnl > 0;
               const flashDirection = flashed[item.holding.card_id];
               const flashClassName = flashDirection ? ` flash-${flashDirection}` : "";
+              const archivedClassName = showingArchived ? " tile--archived" : "";
               return (
                 <Reveal key={item.holding.id} index={index}>
                   <TiltCard>
                     <Link
                       href={`/card/${item.holding.card_id}`}
-                      className={`tile${gain ? " tile--gain" : ""}${flashClassName}`}
+                      className={`tile${gain ? " tile--gain" : ""}${flashClassName}${archivedClassName}`}
                     >
                       <div className="tile__art">
                         {item.card?.image_url ? (
@@ -264,6 +300,19 @@ export default function Home() {
                           <PnLPill value={item.pnl} />
                         </div>
                       </div>
+                      {showingArchived && (
+                        <div className="tile__actions">
+                          <button
+                            className="btn btn--sm"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              restore(item.holding.id);
+                            }}
+                          >
+                            Restore
+                          </button>
+                        </div>
+                      )}
                     </Link>
                   </TiltCard>
                 </Reveal>

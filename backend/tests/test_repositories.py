@@ -56,6 +56,45 @@ def test_holding_delete_returns_false_when_missing(session):
     assert repo.delete("nonexistent-id") is False
 
 
+def test_holding_list_excludes_archived_by_default(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me"))
+    repo.set_archived(holding.id, True)
+    assert repo.list("me") == []
+
+
+def test_holding_list_returns_archived_when_requested(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me"))
+    repo.set_archived(holding.id, True)
+    assert len(repo.list("me", archived=True)) == 1
+
+
+def test_holding_set_archived_stamps_a_timestamp(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me"))
+    assert repo.set_archived(holding.id, True).archived_at is not None
+
+
+def test_holding_set_archived_false_clears_the_timestamp(session):
+    session.add(Card(id="base1-4", name="Charizard"))
+    session.commit()
+    repo = HoldingRepository(session)
+    holding = repo.add(Holding(card_id="base1-4", owner_id="me"))
+    repo.set_archived(holding.id, True)
+    assert repo.set_archived(holding.id, False).archived_at is None
+
+
+def test_holding_set_archived_returns_none_when_missing(session):
+    assert HoldingRepository(session).set_archived("nonexistent-id", True) is None
+
+
 def test_sale_add_then_list_returns_it(session):
     session.add(Card(id="base1-4", name="Charizard"))
     session.commit()

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.errors import HoldingNotFoundError
 from app.models import Card, Holding, PortfolioSnapshot, PriceSnapshot
 from app.providers.base import CardResult
 from app.repositories.card_repository import CardRepository
@@ -53,9 +54,10 @@ class CollectionService:
             ))
         return holding
 
-    def list_collection(self, owner_id: str = "me") -> list[HoldingView]:
+    def list_collection(self, owner_id: str = "me",
+                        archived: bool = False) -> list[HoldingView]:
         views: list[HoldingView] = []
-        for holding in self.holding_repo.list(owner_id):
+        for holding in self.holding_repo.list(owner_id, archived=archived):
             latest = self.price_repo.latest_for(holding.card_id)
             current = latest.market_price if latest else None
             value = (current or 0.0) * holding.quantity
@@ -82,3 +84,15 @@ class CollectionService:
             owner_id=owner_id, total_cost=summary.total_cost,
             total_value=summary.total_value, pnl=summary.pnl,
         ))
+
+    def archive_holding(self, holding_id: str) -> Holding:
+        holding = self.holding_repo.set_archived(holding_id, True)
+        if holding is None:
+            raise HoldingNotFoundError(holding_id)
+        return holding
+
+    def restore_holding(self, holding_id: str) -> Holding:
+        holding = self.holding_repo.set_archived(holding_id, False)
+        if holding is None:
+            raise HoldingNotFoundError(holding_id)
+        return holding
