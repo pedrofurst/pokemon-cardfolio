@@ -32,8 +32,9 @@ def add_holding(body: AddHoldingRequest,
 
 
 @router.get("")
-def list_holdings(service: CollectionService = Depends(get_collection_service)) -> dict:
-    views = service.list_collection()
+def list_holdings(archived: bool = False,
+                  service: CollectionService = Depends(get_collection_service)) -> dict:
+    views = service.list_collection(archived=archived)
     summary = service.summarize(views)
     return {
         "summary": summary.__dict__,
@@ -47,3 +48,15 @@ def list_holdings(service: CollectionService = Depends(get_collection_service)) 
             for v in views
         ],
     }
+
+
+@router.patch("/{holding_id}/archive")
+def archive_holding(holding_id: str,
+                    service: CollectionService = Depends(get_collection_service)) -> dict:
+    return service.archive_holding(holding_id).model_dump()
+
+
+@router.patch("/{holding_id}/restore")
+def restore_holding(holding_id: str,
+                    service: CollectionService = Depends(get_collection_service)) -> dict:
+    return service.restore_holding(holding_id).model_dump()

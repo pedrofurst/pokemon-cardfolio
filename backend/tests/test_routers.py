@@ -409,3 +409,61 @@ def test_add_holding_with_set_data_upserts_card_set_total():
     with Session(client.test_engine) as session:
         card = CardRepository(session).get("base1-4")
     assert card.set_total == 102
+
+
+def test_archive_holding_returns_200():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+
+    response = client.patch(f"/holdings/{holding_id}/archive")
+
+    assert response.status_code == 200
+
+
+def test_archive_holding_removes_it_from_the_default_list():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.patch(f"/holdings/{holding_id}/archive")
+
+    body = client.get("/holdings").json()
+
+    assert body["items"] == []
+
+
+def test_archived_holdings_are_listed_when_requested():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.patch(f"/holdings/{holding_id}/archive")
+
+    body = client.get("/holdings?archived=true").json()
+
+    assert len(body["items"]) == 1
+
+
+def test_restore_holding_returns_it_to_the_default_list():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.patch(f"/holdings/{holding_id}/archive")
+    client.patch(f"/holdings/{holding_id}/restore")
+
+    body = client.get("/holdings").json()
+
+    assert len(body["items"]) == 1
+
+
+def test_archive_unknown_holding_returns_404():
+    client = _client()
+
+    response = client.patch("/holdings/nonexistent-id/archive")
+
+    assert response.status_code == 404
+
+
+def test_archiving_an_already_archived_holding_is_idempotent():
+    client = _client()
+    holding_id = _add_holding_with_quantity(client, quantity=1)
+    client.patch(f"/holdings/{holding_id}/archive")
+
+    response = client.patch(f"/holdings/{holding_id}/archive")
+
+    assert response.status_code == 200
